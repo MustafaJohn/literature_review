@@ -1,0 +1,15 @@
+bs4
+faiss-cpu
+fastapi
+feedparser
+google-genai
+langgraph
+numpy
+python-dotenv
+requests
+sentence-transformers
+torch
+tqdm
+transformers
+uvicorn[standard]
+python-multipart
