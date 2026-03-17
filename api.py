@@ -50,8 +50,9 @@ if frontend_path.exists():
 # ── Models ────────────────────────────────────────────────────
 
 class ReviewRequest(BaseModel):
-    query:          str  = Field(..., min_length=3, max_length=500)
-    citation_style: str  = Field(default="APA", pattern="^(APA|IEEE)$")
+    query:          str = Field(..., min_length=3, max_length=500)
+    citation_style: str = Field(default="APA", pattern="^(APA|IEEE)$")
+    max_results:    int = Field(default=14, ge=10, le=50)
 
 class ClusterItem(BaseModel):
     theme:          str
@@ -77,6 +78,7 @@ class ReviewResponse(BaseModel):
     clusters:        list[ClusterItem]
     sources:         list[SourceItem]
     elapsed_seconds: float
+    ss_failed:       bool        # True when Semantic Scholar was rate-limited
 
 
 # ── Routes ────────────────────────────────────────────────────
@@ -99,15 +101,17 @@ def run_review(req: ReviewRequest):
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
 
-    logger.info("Review request: %s [%s]", req.query, req.citation_style)
+    logger.info("Review request: %s [%s] max_results=%d",
+                req.query, req.citation_style, req.max_results)
     t0 = time.time()
 
     try:
         graph = build_graph()
         result = graph.invoke({
             "query":             req.query,
-            "input_type":        "",          # auto-detected by researcher
+            "input_type":        "",
             "citation_style":    req.citation_style,
+            "max_results":       req.max_results,
             "fetched_docs":      [],
             "vector_results":    [],
             "graph_results":     [],
@@ -118,14 +122,16 @@ def run_review(req: ReviewRequest):
             "analysis_decision": "",
             "sources":           [],
             "logs":              [],
+            "ss_failed":         False,
         })
     except Exception as exc:
         logger.exception("Pipeline failed: %s", req.query)
         raise HTTPException(status_code=500, detail=str(exc))
 
     elapsed = round(time.time() - t0, 2)
-    logger.info("Done in %.2fs | %d sources | %d clusters",
-                elapsed, len(result.get("sources", [])), len(result.get("clusters", [])))
+    logger.info("Done in %.2fs | %d sources | %d clusters | ss_failed=%s",
+                elapsed, len(result.get("sources", [])),
+                len(result.get("clusters", [])), result.get("ss_failed", False))
 
     return ReviewResponse(
         query           = req.query,
@@ -135,4 +141,5 @@ def run_review(req: ReviewRequest):
         clusters        = result.get("clusters", []),
         sources         = result.get("sources", []),
         elapsed_seconds = elapsed,
+        ss_failed       = result.get("ss_failed", False),
     )
