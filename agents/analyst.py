@@ -1,52 +1,44 @@
 """
 agents/analyst.py
 
-Uses vector retrieval to surface the most relevant paper chunks,
-then asks the LLM to group them into thematic clusters.
-
-Each cluster contains:
-  - theme name
-  - 2-sentence description of the theme
-  - which paper indices belong to it
-  - any contradictions or debates within the theme
+Groups fetched papers into thematic clusters using the LLM directly.
+Vector retrieval removed — at 10-50 papers the full abstract set fits
+comfortably in Gemini's context window, so chunking + FAISS adds latency
+and RAM cost for no benefit.
 """
 
 import json
 import logging
 from orchestration.state import LitReviewState
-from memory.vector_memory import VectorMemory
 from tools.call_llm import call_llm
 from tools.fetch_web import papers_to_llm_context
 
 logger = logging.getLogger(__name__)
 
-MIN_HITS      = 3
-MIN_AVG_SCORE = 0.25
+# Clustering is a mechanical structured task — flash is fast and accurate enough.
+# Pro is reserved for the summarizer which writes the narrative the user reads.
+_ANALYST_MODEL = "gemini-2.5-flash"
+
+# Minimum papers needed to attempt clustering
+_MIN_PAPERS = 3
 
 
-def analyst_agent(state: LitReviewState, vector_mem: VectorMemory) -> LitReviewState:
-    query       = state["query"]
-    papers      = state.get("fetched_docs", [])
+def analyst_agent(state: LitReviewState) -> LitReviewState:
+    query  = state["query"]
+    papers = state.get("fetched_docs", [])
 
-    # ── 1. Vector retrieval ────────────────────────────────────
-    vector_hits = vector_mem.search(query, k=12)
-    logger.info("[analyst] %d vector hits", len(vector_hits))
-    state["vector_results"] = vector_hits
-
-    if not vector_hits or len(vector_hits) < MIN_HITS:
+    if len(papers) < _MIN_PAPERS:
+        logger.warning(
+            "[analyst] Only %d papers — below minimum (%d), flagging need_more_info",
+            len(papers), _MIN_PAPERS,
+        )
         state["analysis_decision"] = "need_more_info"
         return state
 
-    avg_score = sum(v["score"] for v in vector_hits) / len(vector_hits)
-    if avg_score < MIN_AVG_SCORE:
-        state["analysis_decision"] = "need_more_info"
-        return state
-
-    # ── 2. Build paper list for clustering prompt ──────────────
     paper_context = papers_to_llm_context(papers, max_abstract_chars=300)
     n_papers      = len(papers)
 
-    prompt = f"""You are a research librarian helping cluster academic papers for a literature review.
+    prompt = f"""You are a research librarian helping cluster papers for a literature review.
 
 Research topic/query: "{query}"
 
@@ -76,7 +68,8 @@ Rules:
 - Cluster themes should be meaningfully distinct from each other"""
 
     try:
-        raw = call_llm(prompt)
+        raw   = call_llm(prompt, model=_ANALYST_MODEL)
+        logger.info("[analyst] Using model: %s", _ANALYST_MODEL)
         clean = raw.replace("```json", "").replace("```", "").strip()
         match = __import__("re").search(r"\{[\s\S]*\}", clean)
         parsed = json.loads(match.group(0) if match else clean)
@@ -86,8 +79,5 @@ Rules:
         logger.error("[analyst] Clustering failed: %s", e)
         state["clusters"] = []
 
-    # Assemble retrieval context for summarizer
-    context_blocks = [f"[SOURCE: {v['url']}]\n{v['chunk']}" for v in vector_hits]
-    state["final_context"]     = "\n\n".join(context_blocks)
     state["analysis_decision"] = "ready"
     return state
