@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 _DOI_RE    = re.compile(r"^10\.\d{4,}/")
 _QUOTE_RE  = re.compile(r'^["\'](.+)["\']$')
 
+DEFAULT_MAX_RESULTS = 14
+
 
 def _detect_input_type(query: str) -> str:
     """
@@ -39,12 +41,17 @@ def _detect_input_type(query: str) -> str:
 
 
 def research_agent(state: LitReviewState) -> LitReviewState:
-    query      = state["query"]
-    input_type = state.get("input_type") or _detect_input_type(query)
+    query       = state["query"]
+    input_type  = state.get("input_type") or _detect_input_type(query)
+    max_results = state.get("max_results") or DEFAULT_MAX_RESULTS
+    sort_by     = state.get("sort_by") or "relevance"
 
-    logger.info("[researcher] Query: %s | Detected type: %s", query, input_type)
+    logger.info(
+        "[researcher] Query: %s | Detected type: %s | Max results: %d | Sort: %s",
+        query, input_type, max_results, sort_by,
+    )
 
-    result     = fetch_papers(query, input_type=input_type, max_results=14)
+    result     = fetch_papers(query, input_type=input_type, max_results=max_results, sort_by=sort_by)
     all_papers = result["papers"]
 
     valid_docs = [p for p in all_papers if _is_valid(p)]
