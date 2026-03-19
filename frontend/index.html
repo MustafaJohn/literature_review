@@ -34,8 +34,6 @@ body{
     radial-gradient(ellipse 80% 50% at 20% -10%,rgba(212,168,83,0.06) 0%,transparent 60%),
     radial-gradient(ellipse 60% 40% at 80% 110%,rgba(78,205,196,0.04) 0%,transparent 60%);
 }
-
-/* subtle grid */
 body::before{
   content:'';position:fixed;inset:0;
   background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),
@@ -58,27 +56,18 @@ body::before{
 }
 .hdr-badge span{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
-h1{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(32px,5vw,52px);
-  line-height:1.1;letter-spacing:-0.02em;
-  color:#fff;margin-bottom:12px;
-}
+h1{font-family:'Playfair Display',serif;font-size:clamp(32px,5vw,52px);line-height:1.1;letter-spacing:-0.02em;color:#fff;margin-bottom:12px}
 h1 em{font-style:italic;color:var(--gold)}
 .hdr-sub{font-size:15px;color:var(--muted);max-width:480px;line-height:1.65}
 
 /* ── STAGE RAIL ── */
-.rail{
-  display:flex;align-items:center;
-  margin-bottom:44px;gap:0;
-}
+.rail{display:flex;align-items:center;margin-bottom:44px;gap:0}
 .rail-step{
   display:flex;align-items:center;gap:10px;
   font-family:'IBM Plex Mono',monospace;font-size:11px;
   color:var(--dim);letter-spacing:0.08em;text-transform:uppercase;
   padding:10px 16px;border:1px solid var(--border);
-  background:var(--surface);cursor:pointer;transition:all 0.2s;
-  position:relative;
+  background:var(--surface);cursor:pointer;transition:all 0.2s;position:relative;
 }
 .rail-step:first-child{border-radius:6px 0 0 6px}
 .rail-step:last-child{border-radius:0 6px 6px 0;border-left:none}
@@ -95,352 +84,136 @@ h1 em{font-style:italic;color:var(--gold)}
 
 /* ── SECTION LABEL ── */
 .sec{
-  font-family:'IBM Plex Mono',monospace;
-  font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
-  color:var(--muted);display:flex;align-items:center;gap:10px;
-  margin-bottom:16px;
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:10px;margin-bottom:16px;
 }
 .sec::after{content:'';flex:1;height:1px;background:var(--border)}
 
 /* ── INPUT ── */
 .input-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:4px;
-  display:flex;margin-bottom:12px;
-  transition:border-color 0.2s,box-shadow 0.2s;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;
+  display:flex;margin-bottom:12px;transition:border-color 0.2s,box-shadow 0.2s;
 }
-.input-card:focus-within{
-  border-color:rgba(212,168,83,0.5);
-  box-shadow:0 0 0 3px rgba(212,168,83,0.08);
-}
+.input-card:focus-within{border-color:rgba(212,168,83,0.5);box-shadow:0 0 0 3px rgba(212,168,83,0.08)}
 .input-card input{
   flex:1;background:transparent;border:none;outline:none;
-  color:var(--text);font-family:'IBM Plex Sans',sans-serif;
-  font-size:15px;padding:14px 18px;
+  color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:15px;padding:14px 18px;
 }
 ::placeholder{color:var(--dim)}
-
-.style-toggle{
-  display:flex;align-items:center;gap:4px;padding:6px;
-}
+.style-toggle{display:flex;align-items:center;gap:4px;padding:6px}
 .style-btn{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  padding:7px 12px;border-radius:6px;border:1px solid var(--border);
-  background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
+  font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 12px;border-radius:6px;
+  border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
 }
 .style-btn.active{background:var(--surface3);border-color:var(--gold);color:var(--gold)}
-
 .go-btn{
-  background:var(--gold);color:var(--void);
-  font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;
-  border:none;border-radius:8px;padding:10px 22px;
-  cursor:pointer;transition:all 0.18s;white-space:nowrap;
-  align-self:center;margin:4px;
+  background:var(--gold);color:var(--void);font-family:'IBM Plex Sans',sans-serif;
+  font-size:13px;font-weight:500;border:none;border-radius:8px;padding:10px 22px;
+  cursor:pointer;transition:all 0.18s;white-space:nowrap;align-self:center;margin:4px;
 }
 .go-btn:hover{background:var(--gold2);transform:translateY(-1px)}
 .go-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
-
-.input-hint{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
-  margin-bottom:24px;
-}
+.input-hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:24px}
 .input-hint span{color:var(--gold);margin:0 6px}
 
 /* ── DEPTH CONTROL ── */
-.depth-control{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:16px 20px;
-  margin-bottom:20px;
-}
-.depth-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:12px;
-}
-.depth-label{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);
-}
-.depth-value{
-  font-family:'IBM Plex Mono',monospace;font-size:13px;
-  color:var(--gold);
-}
+.depth-control{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:20px}
+.depth-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.depth-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted)}
+.depth-value{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--gold)}
 .depth-value strong{font-size:17px}
 .slider-row{display:flex;align-items:center;gap:10px}
-.slider-cap{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  color:var(--dim);min-width:20px;text-align:center;
-}
-input[type="range"]{
-  flex:1;height:3px;-webkit-appearance:none;appearance:none;
-  background:var(--border2);border-radius:2px;
-  outline:none;cursor:pointer;
-}
-input[type="range"]::-webkit-slider-thumb{
-  -webkit-appearance:none;appearance:none;
-  width:14px;height:14px;border-radius:50%;
-  background:var(--gold);border:2px solid var(--void);
-  box-shadow:0 0 0 2px rgba(212,168,83,0.3);
-  cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;
-}
-input[type="range"]::-webkit-slider-thumb:hover{
-  transform:scale(1.2);box-shadow:0 0 0 4px rgba(212,168,83,0.2);
-}
-input[type="range"]::-moz-range-thumb{
-  width:14px;height:14px;border-radius:50%;
-  background:var(--gold);border:2px solid var(--void);
-  cursor:pointer;
-}
-.depth-hint{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  color:var(--dim);margin-top:10px;line-height:1.5;
-}
-.depth-preset-row{
-  display:flex;gap:6px;margin-top:12px;
-}
-.depth-preset{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  padding:4px 10px;border-radius:4px;
-  border:1px solid var(--border);background:transparent;
-  color:var(--muted);cursor:pointer;transition:all 0.15s;
-}
+.slider-cap{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);min-width:20px;text-align:center}
+input[type="range"]{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--gold);border:2px solid var(--void);box-shadow:0 0 0 2px rgba(212,168,83,0.3);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.2);box-shadow:0 0 0 4px rgba(212,168,83,0.2)}
+input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--gold);border:2px solid var(--void);cursor:pointer}
+.depth-hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5}
+.depth-preset-row{display:flex;gap:6px;margin-top:12px}
+.depth-preset{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s}
 .depth-preset:hover{border-color:var(--gold);color:var(--gold)}
 .depth-preset.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,83,0.07)}
 
 /* ── LOADER ── */
 .loader{display:none;padding:52px 0;text-align:center}
 .loader.show{display:block}
-.loader-ring{
-  width:36px;height:36px;border-radius:50%;
-  border:2px solid var(--border2);border-top-color:var(--gold);
-  animation:spin 0.9s linear infinite;margin:0 auto 16px;
-}
+.loader-ring{width:36px;height:36px;border-radius:50%;border:2px solid var(--border2);border-top-color:var(--gold);animation:spin 0.9s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .loader-msg{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
 
 /* ── ERROR ── */
-.err{
-  background:rgba(232,105,122,0.08);border:1px solid rgba(232,105,122,0.25);
-  border-radius:8px;padding:12px 16px;font-size:13px;
-  color:var(--rose);margin-bottom:16px;display:none;
-  align-items:center;gap:12px;
-}
-.retry-btn{
-  background:transparent;border:1px solid rgba(232,105,122,0.4);
-  color:var(--rose);font-family:'IBM Plex Mono',monospace;
-  font-size:11px;padding:5px 12px;border-radius:6px;
-  cursor:pointer;transition:all 0.15s;white-space:nowrap;
-  margin-left:auto;flex-shrink:0;
-}
-.retry-btn:hover{background:rgba(232,105,122,0.1);}
+.err{background:rgba(232,105,122,0.08);border:1px solid rgba(232,105,122,0.25);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--rose);margin-bottom:16px;display:none;align-items:center;gap:12px}
+.retry-btn{background:transparent;border:1px solid rgba(232,105,122,0.4);color:var(--rose);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all 0.15s;white-space:nowrap;margin-left:auto;flex-shrink:0}
+.retry-btn:hover{background:rgba(232,105,122,0.1)}
 
 /* ── PAPER CARDS ── */
 .papers-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
-.paper-card{
-  background:var(--surface);border:1.5px solid var(--border);
-  border-radius:8px;padding:14px 16px;cursor:pointer;
-  transition:all 0.18s;user-select:none;position:relative;
-}
+.paper-card{background:var(--surface);border:1.5px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;transition:all 0.18s;user-select:none;position:relative}
 .paper-card:hover{border-color:var(--border2);background:var(--surface2)}
 .paper-card.selected{border-color:var(--teal);background:rgba(78,205,196,0.04)}
-.paper-card.selected::after{
-  content:'✓';position:absolute;top:10px;right:12px;
-  font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);
-}
-.paper-src{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  color:var(--muted);margin-bottom:6px;
-  display:flex;align-items:center;gap:6px;
-}
-.oa-badge{
-  padding:1px 6px;border-radius:3px;font-size:9px;
-  background:rgba(78,205,196,0.1);color:var(--teal);
-  border:1px solid rgba(78,205,196,0.2);
-}
-.paper-title{
-  font-family:'Playfair Display',serif;font-size:13px;
-  color:#fff;line-height:1.4;margin-bottom:6px;
-}
-.paper-meta{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;
-}
+.paper-card.selected::after{content:'✓';position:absolute;top:10px;right:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal)}
+.paper-src{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.oa-badge{padding:1px 6px;border-radius:3px;font-size:9px;background:rgba(78,205,196,0.1);color:var(--teal);border:1px solid rgba(78,205,196,0.2)}
+.paper-title{font-family:'Playfair Display',serif;font-size:13px;color:#fff;line-height:1.4;margin-bottom:6px}
+.paper-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
 .cit-badge{color:var(--gold);font-size:10px}
 
 /* ── SEARCH AGAIN ── */
-.search-again-bar{
-  display:flex;align-items:center;gap:10px;
-  padding:10px 14px;
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;margin-bottom:20px;
-}
-.search-again-label{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  color:var(--muted);letter-spacing:0.06em;
-}
-.paper-count-badge{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  padding:3px 10px;border-radius:4px;
-  background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.2);
-  color:var(--gold);
-}
-.search-again-btn{
-  margin-left:auto;
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  padding:6px 14px;border-radius:6px;
-  border:1px solid var(--border2);background:transparent;
-  color:var(--muted);cursor:pointer;transition:all 0.15s;
-  display:flex;align-items:center;gap:6px;
-}
+.search-again-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:20px}
+.search-again-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.06em}
+.paper-count-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 10px;border-radius:4px;background:rgba(212,168,83,0.08);border:1px solid rgba(212,168,83,0.2);color:var(--gold)}
+.search-again-btn{margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:6px 14px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:6px}
 .search-again-btn:hover{border-color:var(--gold);color:var(--gold)}
-
-.search-again-panel{
-  background:var(--surface2);
-  border:1px solid rgba(212,168,83,0.3);
-  border-radius:10px;padding:20px 22px;
-  margin-bottom:24px;
-  animation:fadeUp 0.2s ease;
-}
-.search-again-panel .panel-title{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  letter-spacing:0.14em;text-transform:uppercase;
-  color:var(--gold);margin-bottom:14px;
-  display:flex;align-items:center;gap:8px;
-}
-.search-again-panel .panel-title::after{
-  content:'';flex:1;height:1px;background:rgba(212,168,83,0.15);
-}
-.re-input-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:8px;padding:4px;display:flex;
-  margin-bottom:14px;
-  transition:border-color 0.2s,box-shadow 0.2s;
-}
-.re-input-card:focus-within{
-  border-color:rgba(212,168,83,0.5);
-  box-shadow:0 0 0 3px rgba(212,168,83,0.08);
-}
-.re-input-card input{
-  flex:1;background:transparent;border:none;outline:none;
-  color:var(--text);font-family:'IBM Plex Sans',sans-serif;
-  font-size:14px;padding:12px 16px;
-}
-.search-again-actions{
-  display:flex;justify-content:flex-end;gap:8px;margin-top:4px;
-}
+.search-again-panel{background:var(--surface2);border:1px solid rgba(212,168,83,0.3);border-radius:10px;padding:20px 22px;margin-bottom:24px;animation:fadeUp 0.2s ease}
+.search-again-panel .panel-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.search-again-panel .panel-title::after{content:'';flex:1;height:1px;background:rgba(212,168,83,0.15)}
+.re-input-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;display:flex;margin-bottom:14px;transition:border-color 0.2s,box-shadow 0.2s}
+.re-input-card:focus-within{border-color:rgba(212,168,83,0.5);box-shadow:0 0 0 3px rgba(212,168,83,0.08)}
+.re-input-card input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;padding:12px 16px}
+.search-again-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 
 /* ── CLUSTERS ── */
-.cluster-card{
-  background:var(--surface);border:1px solid var(--border);
-  border-left:3px solid var(--gold);border-radius:8px;
-  padding:18px 20px;margin-bottom:12px;
-}
-.cluster-theme{
-  font-family:'Playfair Display',serif;font-size:17px;
-  color:#fff;margin-bottom:8px;
-}
+.cluster-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:18px 20px;margin-bottom:12px}
+.cluster-theme{font-family:'Playfair Display',serif;font-size:17px;color:#fff;margin-bottom:8px}
 .cluster-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:10px}
 .cluster-papers{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.cluster-paper-tag{
-  font-family:'IBM Plex Mono',monospace;font-size:10px;
-  padding:3px 9px;border-radius:4px;
-  background:var(--surface3);border:1px solid var(--border2);color:var(--muted);
-}
-.cluster-contradiction{
-  font-size:12px;color:var(--rose);
-  border-top:1px solid var(--border);padding-top:8px;margin-top:4px;
-  font-style:italic;
-}
+.cluster-paper-tag{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 9px;border-radius:4px;background:var(--surface3);border:1px solid var(--border2);color:var(--muted)}
+.cluster-contradiction{font-size:12px;color:var(--rose);border-top:1px solid var(--border);padding-top:8px;margin-top:4px;font-style:italic}
 
 /* ── OUTPUT ── */
 .output-tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:1px solid var(--border)}
-.tab-btn{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;
-  text-transform:uppercase;padding:10px 20px;
-  background:transparent;border:none;
-  color:var(--muted);cursor:pointer;transition:all 0.18s;
-  border-bottom:2px solid transparent;margin-bottom:-1px;
-}
+.tab-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:10px 20px;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all 0.18s;border-bottom:2px solid transparent;margin-bottom:-1px}
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
 .tab-pane{display:none}
 .tab-pane.active{display:block;animation:fadeUp 0.2s ease}
-
-.narrative-box{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:28px 32px;
-  font-size:14px;line-height:1.85;color:var(--text);
-  font-family:'IBM Plex Sans',sans-serif;
-  white-space:pre-wrap;
-}
-
-.citation-box{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:10px;padding:24px 28px;
-  font-family:'IBM Plex Mono',monospace;font-size:12px;
-  line-height:1.8;color:var(--text);white-space:pre-wrap;
-}
-
+.narrative-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:28px 32px;font-size:14px;line-height:1.85;color:var(--text);font-family:'IBM Plex Sans',sans-serif;white-space:pre-wrap}
+.citation-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 28px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.8;color:var(--text);white-space:pre-wrap}
 .sources-list{display:flex;flex-direction:column;gap:8px}
-.source-row{
-  display:flex;gap:12px;align-items:flex-start;
-  padding:12px 14px;background:var(--surface);
-  border:1px solid var(--border);border-radius:8px;
-}
-.source-idx{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  color:var(--gold);min-width:24px;flex-shrink:0;padding-top:2px;
-}
+.source-row{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.source-idx{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--gold);min-width:24px;flex-shrink:0;padding-top:2px}
 .source-body{flex:1}
-.source-title{
-  font-size:13px;font-weight:500;color:#fff;
-  text-decoration:none;display:block;margin-bottom:3px;
-  transition:color 0.15s;
-}
+.source-title{font-size:13px;font-weight:500;color:#fff;text-decoration:none;display:block;margin-bottom:3px;transition:color 0.15s}
 .source-title:hover{color:var(--gold)}
 .source-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
 
 /* ── ACTION ROW ── */
 .act-row{display:flex;gap:10px;align-items:center;margin-top:24px;flex-wrap:wrap}
-.btn-primary{
-  background:var(--gold);color:var(--void);
-  border:none;border-radius:8px;padding:12px 28px;
-  font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:500;
-  cursor:pointer;transition:all 0.18s;
-}
+.btn-primary{background:var(--gold);color:var(--void);border:none;border-radius:8px;padding:12px 28px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.18s}
 .btn-primary:hover{background:var(--gold2);transform:translateY(-1px)}
 .btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
-.btn-ghost{
-  background:transparent;color:var(--muted);
-  border:1px solid var(--border);border-radius:8px;padding:12px 20px;
-  font-family:'IBM Plex Sans',sans-serif;font-size:14px;
-  cursor:pointer;transition:all 0.18s;
-}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:12px 20px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;cursor:pointer;transition:all 0.18s}
 .btn-ghost:hover{border-color:var(--border2);color:var(--text)}
 .sel-hint{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-left:auto}
 
 /* ── EXPORT BAR ── */
-.export-bar{
-  display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--surface2);border:1px solid var(--border2);
-  border-radius:100px;padding:10px 20px;
-  align-items:center;gap:10px;z-index:100;
-  box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap;
-}
+.export-bar{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:100px;padding:10px 20px;align-items:center;gap:10px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,0.6);white-space:nowrap}
 .export-bar.show{display:flex}
 .exp-label{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
-.exp-btn{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  padding:7px 14px;border-radius:100px;
-  background:var(--surface3);border:1px solid var(--border2);
-  color:var(--text);cursor:pointer;transition:all 0.15s;
-}
+.exp-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 14px;border-radius:100px;background:var(--surface3);border:1px solid var(--border2);color:var(--text);cursor:pointer;transition:all 0.15s}
 .exp-btn:hover{border-color:var(--gold);color:var(--gold)}
 
 /* ── API STATUS ── */
-.api-status{
-  display:flex;align-items:center;gap:8px;
-  font-family:'IBM Plex Mono',monospace;font-size:11px;
-  padding:8px 14px;border-radius:6px;margin-bottom:16px;
-}
+.api-status{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 14px;border-radius:6px;margin-bottom:16px}
 .api-status.ok{background:rgba(78,205,196,0.06);border:1px solid rgba(78,205,196,0.2);color:var(--teal)}
 .api-status.warn{background:rgba(212,168,83,0.06);border:1px solid rgba(212,168,83,0.2);color:var(--gold)}
 
@@ -455,48 +228,31 @@ input[type="range"]::-moz-range-thumb{
 <body>
 <div class="wrap">
 
-  <!-- HEADER -->
   <div class="hdr">
     <div class="hdr-badge"><span></span>lit·draft · academic assistant</div>
     <h1>Literature reviews,<br/><em>done properly.</em></h1>
     <p class="hdr-sub">Enter a research topic or paste a paper title/DOI. The agent fetches real papers, clusters them by theme, and drafts your review.</p>
   </div>
 
-  <!-- RAIL -->
   <div class="rail">
-    <div class="rail-step active" id="node-1" onclick="jumpTo(1)">
-      <span class="rail-num">01</span><span class="rail-label">Input</span>
-    </div>
-    <div class="rail-step locked" id="node-2" onclick="jumpTo(2)">
-      <span class="rail-num">02</span><span class="rail-label">Papers</span>
-    </div>
-    <div class="rail-step locked" id="node-3" onclick="jumpTo(3)">
-      <span class="rail-num">03</span><span class="rail-label">Clusters</span>
-    </div>
-    <div class="rail-step locked" id="node-4" onclick="jumpTo(4)">
-      <span class="rail-num">04</span><span class="rail-label">Output</span>
-    </div>
+    <div class="rail-step active" id="node-1" onclick="jumpTo(1)"><span class="rail-num">01</span><span class="rail-label">Input</span></div>
+    <div class="rail-step locked" id="node-2" onclick="jumpTo(2)"><span class="rail-num">02</span><span class="rail-label">Papers</span></div>
+    <div class="rail-step locked" id="node-3" onclick="jumpTo(3)"><span class="rail-num">03</span><span class="rail-label">Clusters</span></div>
+    <div class="rail-step locked" id="node-4" onclick="jumpTo(4)"><span class="rail-num">04</span><span class="rail-label">Output</span></div>
   </div>
 
   <!-- ══════════ STAGE 1 — INPUT ══════════ -->
   <div class="panel active" id="stage-1">
     <div class="sec">Stage 01 — What are you reviewing?</div>
-
     <div class="input-card">
-      <input id="s1-input" type="text"
-        placeholder="Topic, paper title, or DOI  (e.g. transformer attention mechanisms)"/>
+      <input id="s1-input" type="text" placeholder="Topic, paper title, or DOI  (e.g. transformer attention mechanisms)"/>
       <div class="style-toggle">
         <button class="style-btn active" id="btn-apa" onclick="setStyle('APA')">APA</button>
         <button class="style-btn" id="btn-ieee" onclick="setStyle('IEEE')">IEEE</button>
       </div>
-      <button class="go-btn" id="s1-btn" onclick="runPipeline()">Fetch Papers →</button>
+      <button class="go-btn" id="s1-btn" onclick="runFetch()">Fetch Papers →</button>
     </div>
-
-    <p class="input-hint">
-      Accepts: topic keywords<span>·</span>paper title (quote for exact match)<span>·</span>DOI (10.xxx/...)
-    </p>
-
-    <!-- DEPTH CONTROL -->
+    <p class="input-hint">Accepts: topic keywords<span>·</span>paper title (quote for exact match)<span>·</span>DOI (10.xxx/...)</p>
     <div class="depth-control">
       <div class="depth-header">
         <span class="depth-label">Search depth</span>
@@ -504,11 +260,7 @@ input[type="range"]::-moz-range-thumb{
       </div>
       <div class="slider-row">
         <span class="slider-cap">10</span>
-        <input
-          type="range" id="s1-depth-slider"
-          min="10" max="50" step="1" value="14"
-          oninput="updateDepth(this.value)"
-        />
+        <input type="range" id="s1-depth-slider" min="10" max="50" step="1" value="14" oninput="updateDepth(this.value)"/>
         <span class="slider-cap">50</span>
       </div>
       <div class="depth-preset-row">
@@ -519,49 +271,28 @@ input[type="range"]::-moz-range-thumb{
       </div>
       <p class="depth-hint">More papers = richer review, but takes longer (~5–8 s per 10 papers).</p>
     </div>
-
-    <div class="err" id="s1-err">
-      <span id="s1-err-msg"></span>
-      <button class="retry-btn" onclick="retryStage(1)">↺ Retry</button>
-    </div>
+    <div class="err" id="s1-err"><span id="s1-err-msg"></span><button class="retry-btn" onclick="retryStage(1)">↺ Retry</button></div>
     <div class="loader" id="s1-loader">
       <div class="loader-ring"></div>
-      <div class="loader-msg" id="s1-msg">Running research pipeline…</div>
+      <div class="loader-msg" id="s1-msg">Fetching papers…</div>
     </div>
   </div>
 
   <!-- ══════════ STAGE 2 — PAPERS ══════════ -->
   <div class="panel" id="stage-2">
     <div class="sec">Stage 02 — Papers found — deselect any you don't want</div>
-
-    <div class="err" id="s2-err">
-      <span id="s2-err-msg"></span>
-      <button class="retry-btn" onclick="retryStage(2)">↺ Retry</button>
-    </div>
-
+    <div class="err" id="s2-err"><span id="s2-err-msg"></span><button class="retry-btn" onclick="retryStage(2)">↺ Retry</button></div>
     <div class="api-status" id="s2-status"></div>
-
-    <!-- SEARCH AGAIN BAR -->
     <div class="search-again-bar" id="s2-search-again-bar">
       <span class="search-again-label">Not what you expected?</span>
       <span class="paper-count-badge" id="s2-paper-count">0 papers</span>
-      <button class="search-again-btn" onclick="toggleSearchAgain()">
-        ↺ Search Again
-      </button>
+      <button class="search-again-btn" onclick="toggleSearchAgain()">↺ Search Again</button>
     </div>
-
-    <!-- SEARCH AGAIN PANEL (hidden by default) -->
     <div class="search-again-panel" id="s2-search-again-panel" style="display:none">
       <div class="panel-title">Refine your search</div>
       <div class="re-input-card">
-        <input
-          id="s2-re-query"
-          type="text"
-          placeholder="Try different keywords or a more specific query…"
-          onkeydown="if(event.key==='Enter') reSearch()"
-        />
+        <input id="s2-re-query" type="text" placeholder="Try different keywords or a more specific query…" onkeydown="if(event.key==='Enter') reSearch()"/>
       </div>
-      <!-- Mini depth control inside re-search panel -->
       <div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted)">Depth</span>
@@ -569,11 +300,7 @@ input[type="range"]::-moz-range-thumb{
         </div>
         <div class="slider-row">
           <span class="slider-cap">10</span>
-          <input
-            type="range" id="s2-re-depth-slider"
-            min="10" max="50" step="1" value="14"
-            oninput="document.getElementById('s2-re-depth-val').textContent = this.value"
-          />
+          <input type="range" id="s2-re-depth-slider" min="10" max="50" step="1" value="14" oninput="document.getElementById('s2-re-depth-val').textContent = this.value"/>
           <span class="slider-cap">50</span>
         </div>
       </div>
@@ -582,13 +309,9 @@ input[type="range"]::-moz-range-thumb{
         <button class="btn-primary" style="padding:9px 22px;font-size:13px" onclick="reSearch()">Search →</button>
       </div>
     </div>
-
     <div class="papers-grid" id="s2-papers"></div>
-
     <div class="act-row">
-      <button class="btn-primary" id="s2-next" onclick="goStage3()" disabled>
-        View Thematic Clusters →
-      </button>
+      <button class="btn-primary" id="s2-next" onclick="goStage3()" disabled>View Thematic Clusters →</button>
       <button class="btn-ghost" onclick="jumpTo(1)">← Back</button>
       <span class="sel-hint" id="s2-hint">0 selected</span>
     </div>
@@ -597,13 +320,10 @@ input[type="range"]::-moz-range-thumb{
   <!-- ══════════ STAGE 3 — CLUSTERS ══════════ -->
   <div class="panel" id="stage-3">
     <div class="sec">Stage 03 — Thematic clusters identified by the agent</div>
-    <div class="err" id="s3-err">
-      <span id="s3-err-msg"></span>
-      <button class="retry-btn" onclick="retryStage(3)">↺ Retry</button>
-    </div>
+    <div class="err" id="s3-err"><span id="s3-err-msg"></span><button class="retry-btn" onclick="retryStage(3)">↺ Retry</button></div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
       The agent has grouped your papers into thematic clusters. Review these — they will
-      structure your literature review. Then generate the draft.
+      structure your literature review. When ready, generate the draft.
     </p>
     <div id="s3-clusters"></div>
     <div class="act-row">
@@ -615,10 +335,7 @@ input[type="range"]::-moz-range-thumb{
   <!-- ══════════ STAGE 4 — OUTPUT ══════════ -->
   <div class="panel" id="stage-4">
     <div class="sec">Stage 04 — Your literature review</div>
-    <div class="err" id="s4-err">
-      <span id="s4-err-msg"></span>
-      <button class="retry-btn" onclick="retryStage(4)">↺ Retry</button>
-    </div>
+    <div class="err" id="s4-err"><span id="s4-err-msg"></span><button class="retry-btn" onclick="retryStage(4)">↺ Retry</button></div>
     <div class="loader" id="s4-loader">
       <div class="loader-ring"></div>
       <div class="loader-msg">Drafting your literature review…</div>
@@ -629,24 +346,17 @@ input[type="range"]::-moz-range-thumb{
         <button class="tab-btn" onclick="switchTab('citations')">Citation List</button>
         <button class="tab-btn" onclick="switchTab('sources')">Sources</button>
       </div>
-      <div class="tab-pane active" id="tab-narrative">
-        <div class="narrative-box" id="s4-narrative"></div>
-      </div>
-      <div class="tab-pane" id="tab-citations">
-        <div class="citation-box" id="s4-citations"></div>
-      </div>
-      <div class="tab-pane" id="tab-sources">
-        <div class="sources-list" id="s4-sources"></div>
-      </div>
+      <div class="tab-pane active" id="tab-narrative"><div class="narrative-box" id="s4-narrative"></div></div>
+      <div class="tab-pane" id="tab-citations"><div class="citation-box" id="s4-citations"></div></div>
+      <div class="tab-pane" id="tab-sources"><div class="sources-list" id="s4-sources"></div></div>
       <div class="act-row" style="margin-top:20px">
         <button class="btn-ghost" onclick="jumpTo(3)">← Back</button>
       </div>
     </div>
   </div>
 
-</div><!-- /wrap -->
+</div>
 
-<!-- EXPORT BAR -->
 <div class="export-bar" id="export-bar">
   <span class="exp-label">Export</span>
   <button class="exp-btn" onclick="exportDraft('txt')">↓ Plain Text</button>
@@ -656,19 +366,14 @@ input[type="range"]::-moz-range-thumb{
 </div>
 
 <script>
-// ══════════════════════════════════════════════════
-// CONFIG
-// ══════════════════════════════════════════════════
 const API_BASE = '';
 
-// ══════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════
+// ── STATE ─────────────────────────────────────────────────────
 const S = {
   query:         '',
   citationStyle: 'APA',
   maxResults:    14,
-  papers:        [],
+  papers:        [],    // full paper dicts including abstract — sent to /api/summarize
   selected:      new Set(),
   clusters:      [],
   narrative:     '',
@@ -677,171 +382,84 @@ const S = {
   current:       1,
 };
 
-// ══════════════════════════════════════════════════
-// DEPTH SLIDER
-// ══════════════════════════════════════════════════
+// ── DEPTH SLIDER ──────────────────────────────────────────────
 function updateDepth(value) {
   const val = parseInt(value, 10);
   S.maxResults = val;
   document.getElementById('s1-depth-val').textContent = val;
-  // Update preset button highlights
   const presets = [10, 14, 25, 40];
   document.querySelectorAll('.depth-preset').forEach((btn, i) => {
     btn.classList.toggle('active', presets[i] === val);
   });
 }
-
 function setPreset(val) {
   document.getElementById('s1-depth-slider').value = val;
   updateDepth(val);
 }
 
-// ══════════════════════════════════════════════════
-// SEARCH AGAIN
-// ══════════════════════════════════════════════════
-function toggleSearchAgain() {
-  const panel = document.getElementById('s2-search-again-panel');
-  const isHidden = panel.style.display === 'none';
-  panel.style.display = isHidden ? 'block' : 'none';
-
-  if (isHidden) {
-    // Pre-fill with current values
-    const reQueryEl = document.getElementById('s2-re-query');
-    reQueryEl.value = S.query;
-    reQueryEl.focus();
-    reQueryEl.select();
-
-    const reSlider = document.getElementById('s2-re-depth-slider');
-    reSlider.value = S.maxResults;
-    document.getElementById('s2-re-depth-val').textContent = S.maxResults;
-  }
-}
-
-async function reSearch() {
-  const newQuery = document.getElementById('s2-re-query').value.trim();
-  if (!newQuery) return;
-
-  const newDepth = parseInt(document.getElementById('s2-re-depth-slider').value, 10);
-
-  // Sync state and Stage 1 controls
-  S.query      = newQuery;
-  S.maxResults = newDepth;
-  document.getElementById('s1-input').value          = newQuery;
-  document.getElementById('s1-depth-slider').value   = newDepth;
-  updateDepth(newDepth);
-
-  // Hide re-search panel
-  document.getElementById('s2-search-again-panel').style.display = 'none';
-
-  // Clear previous results and run
-  S.papers   = [];
-  S.selected = new Set();
-  S.clusters = [];
-
-  document.getElementById('s2-papers').innerHTML = '';
-  document.getElementById('s2-status').className = 'api-status';
-  document.getElementById('s2-status').textContent = '';
-  showErr('s2', '');
-
-  // Show loader inline on Stage 2 (stay on stage 2)
-  const loaderHtml = `<div style="padding:40px 0;text-align:center">
-    <div class="loader-ring" style="margin:0 auto 14px"></div>
-    <div class="loader-msg" id="s2-re-msg">Fetching ${newDepth} papers…</div>
-  </div>`;
-  document.getElementById('s2-papers').innerHTML = loaderHtml;
-  document.getElementById('s2-next').disabled = true;
-
-  try {
-    const result = await callBackend(newQuery, S.citationStyle, newDepth);
-
-    S.papers       = result.sources || [];
-    S.clusters     = result.clusters || [];
-    S.narrative    = result.narrative || '';
-    S.citationList = result.citation_list || '';
-    S.selected     = new Set(S.papers.map((_, i) => i));
-
-    document.getElementById('s2-papers').innerHTML = '';
-    renderPapers(result);
-  } catch(e) {
-    document.getElementById('s2-papers').innerHTML = '';
-    showErr('s2', e.message);
-  }
-}
-
-// ══════════════════════════════════════════════════
-// RAIL
-// ══════════════════════════════════════════════════
+// ── RAIL ──────────────────────────────────────────────────────
 function jumpTo(n) {
   if (!S.unlocked.includes(n)) return;
   S.current = n;
   for (let i = 1; i <= 4; i++) {
     document.getElementById('stage-' + i).className = 'panel' + (i === n ? ' active' : '');
     const node = document.getElementById('node-' + i);
-    node.className = 'rail-step' + (i === n ? ' active' : i < n || S.unlocked.includes(i) ? ' done' : ' locked');
+    node.className = 'rail-step' + (i === n ? ' active' : S.unlocked.includes(i) && i < n ? ' done' : S.unlocked.includes(i) ? ' done' : ' locked');
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 function unlock(n) { if (!S.unlocked.includes(n)) S.unlocked.push(n); }
 
-// ══════════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════════
+// ── HELPERS ───────────────────────────────────────────────────
 function setLoader(id, show, msg) {
   const el = document.getElementById(id + '-loader');
   if (el) el.className = 'loader' + (show ? ' show' : '');
   if (msg) { const m = document.getElementById(id + '-msg'); if (m) m.textContent = msg; }
 }
-
 function showErr(id, msg) {
   const el = document.getElementById(id + '-err');
   if (!el) return;
   const span = el.querySelector('span');
   if (span) span.textContent = msg ? '⚠ ' + msg : '';
-  else el.textContent = msg ? '⚠ ' + msg : '';
   el.style.display = msg ? 'flex' : 'none';
 }
-
-const RETRY_FN = {
-  1: () => runPipeline(),
-  2: () => runPipeline(),
-  3: () => goStage3(),
-  4: () => goStage4(),
-};
-
-function retryStage(n) {
-  showErr('s' + n, '');
-  const fn = RETRY_FN[n];
-  if (fn) fn();
-}
-
 function setStyle(s) {
   S.citationStyle = s;
   document.getElementById('btn-apa').classList.toggle('active', s === 'APA');
   document.getElementById('btn-ieee').classList.toggle('active', s === 'IEEE');
 }
 
-async function callBackend(query, citationStyle, maxResults) {
-  const res = await fetch(`${API_BASE}/api/review`, {
+const RETRY_FN = {
+  1: () => runFetch(),
+  2: () => runFetch(),
+  3: () => { renderClusters(); },   // clusters already in state — just re-render
+  4: () => goStage4(),              // re-calls /api/summarize
+};
+function retryStage(n) { showErr('s' + n, ''); const fn = RETRY_FN[n]; if (fn) fn(); }
+
+// ── API CALLS ─────────────────────────────────────────────────
+async function callFetch(query, citationStyle, maxResults) {
+  const res = await fetch(`${API_BASE}/api/fetch`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({
-      query,
-      citation_style: citationStyle,
-      max_results:    maxResults,       // ← new field
-    }),
+    body:    JSON.stringify({ query, citation_style: citationStyle, max_results: maxResults }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Backend error ${res.status}`);
-  }
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `Backend error ${res.status}`); }
   return res.json();
 }
 
-// ══════════════════════════════════════════════════
-// STAGE 1 → run full pipeline
-// ══════════════════════════════════════════════════
-async function runPipeline() {
+async function callSummarize(query, citationStyle, papers, clusters) {
+  const res = await fetch(`${API_BASE}/api/summarize`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ query, citation_style: citationStyle, papers, clusters }),
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `Backend error ${res.status}`); }
+  return res.json();
+}
+
+// ── STAGE 1 → fetch papers + clusters ────────────────────────
+async function runFetch() {
   const query = document.getElementById('s1-input').value.trim();
   showErr('s1', '');
   if (!query) { showErr('s1', 'Please enter a topic or paper title.'); return; }
@@ -852,18 +470,20 @@ async function runPipeline() {
   S.clusters = [];
 
   document.getElementById('s1-btn').disabled = true;
-  setLoader('s1', true, `Fetching up to ${S.maxResults} papers via Semantic Scholar & arXiv…`);
+  setLoader('s1', true, `Fetching up to ${S.maxResults} papers…`);
 
   try {
-    const result = await callBackend(query, S.citationStyle, S.maxResults);
+    const result = await callFetch(query, S.citationStyle, S.maxResults);
 
-    S.papers       = result.sources || [];
-    S.clusters     = result.clusters || [];
-    S.narrative    = result.narrative || '';
-    S.citationList = result.citation_list || '';
-    S.selected     = new Set(S.papers.map((_, i) => i));
+    // Store full paper dicts — these get sent to /api/summarize later
+    // result.sources has slim metadata; we need to enrich with abstract from fetched_docs
+    // Backend returns sources (slim) — we store them and send back on summarize
+    S.papers   = result.sources || [];
+    S.clusters = result.clusters || [];
+    S.selected = new Set(S.papers.map((_, i) => i));
 
     unlock(2);
+    unlock(3);   // clusters ready immediately
     jumpTo(2);
     renderPapers(result);
 
@@ -875,9 +495,53 @@ async function runPipeline() {
   }
 }
 
-// ══════════════════════════════════════════════════
-// STAGE 2 — render papers
-// ══════════════════════════════════════════════════
+// ── SEARCH AGAIN ──────────────────────────────────────────────
+function toggleSearchAgain() {
+  const panel = document.getElementById('s2-search-again-panel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    const el = document.getElementById('s2-re-query');
+    el.value = S.query; el.focus(); el.select();
+    document.getElementById('s2-re-depth-slider').value = S.maxResults;
+    document.getElementById('s2-re-depth-val').textContent = S.maxResults;
+  }
+}
+
+async function reSearch() {
+  const newQuery = document.getElementById('s2-re-query').value.trim();
+  if (!newQuery) return;
+  const newDepth = parseInt(document.getElementById('s2-re-depth-slider').value, 10);
+
+  S.query = newQuery; S.maxResults = newDepth;
+  document.getElementById('s1-input').value        = newQuery;
+  document.getElementById('s1-depth-slider').value = newDepth;
+  updateDepth(newDepth);
+
+  document.getElementById('s2-search-again-panel').style.display = 'none';
+  S.papers = []; S.selected = new Set(); S.clusters = [];
+  document.getElementById('s2-papers').innerHTML = '';
+  document.getElementById('s2-status').className = 'api-status';
+  document.getElementById('s2-status').textContent = '';
+  showErr('s2', '');
+
+  document.getElementById('s2-papers').innerHTML = `<div style="padding:40px 0;text-align:center"><div class="loader-ring" style="margin:0 auto 14px"></div><div class="loader-msg">Fetching ${newDepth} papers…</div></div>`;
+  document.getElementById('s2-next').disabled = true;
+
+  try {
+    const result = await callFetch(newQuery, S.citationStyle, newDepth);
+    S.papers   = result.sources || [];
+    S.clusters = result.clusters || [];
+    S.selected = new Set(S.papers.map((_, i) => i));
+    document.getElementById('s2-papers').innerHTML = '';
+    renderPapers(result);
+  } catch(e) {
+    document.getElementById('s2-papers').innerHTML = '';
+    showErr('s2', e.message);
+  }
+}
+
+// ── STAGE 2 — render papers ───────────────────────────────────
 function renderPapers(result) {
   const grid   = document.getElementById('s2-papers');
   const status = document.getElementById('s2-status');
@@ -886,10 +550,10 @@ function renderPapers(result) {
   const n = S.papers.length;
   status.className = 'api-status ' + (n > 0 ? 'ok' : 'warn');
   status.innerHTML = n > 0
-    ? `● ${n} real papers fetched live · ${result.elapsed_seconds}s · input detected as <strong>${result.input_type}</strong>`
+    ? `● ${n} papers fetched · ${result.elapsed_seconds}s · detected as <strong>${result.input_type}</strong>` +
+      (result.ss_failed ? ` · <span style="color:var(--gold)">⚠ arXiv only — SS rate limited</span>` : '')
     : '⚠ No papers returned — check your query or try a different topic';
 
-  // Update paper count badge
   const countBadge = document.getElementById('s2-paper-count');
   if (countBadge) countBadge.textContent = `${n} paper${n !== 1 ? 's' : ''}`;
 
@@ -898,8 +562,8 @@ function renderPapers(result) {
     card.className = 'paper-card selected';
     card.dataset.idx = i;
 
+    const srcLabel = p.source === 'arxiv' ? 'arXiv' : p.source === 'ddg' ? 'Web' : 'Semantic Scholar';
     const oaBadge  = p.is_open_access ? `<span class="oa-badge">open</span>` : '';
-    const srcLabel = p.source === 'arxiv' ? 'arXiv' : 'Semantic Scholar';
     const citBadge = p.citations ? `<span class="cit-badge">↗ ${p.citations.toLocaleString()}</span>` : '';
 
     card.innerHTML = `
@@ -923,18 +587,13 @@ function togglePaper(card, i) {
   else                   { S.selected.add(i);    card.classList.add('selected'); }
   updatePaperHint();
 }
-
 function updatePaperHint() {
-  const n    = S.selected.size;
-  const hint = document.getElementById('s2-hint');
-  const next = document.getElementById('s2-next');
-  hint.textContent = `${n} paper${n !== 1 ? 's' : ''} selected`;
-  next.disabled    = n === 0;
+  const n = S.selected.size;
+  document.getElementById('s2-hint').textContent = `${n} paper${n !== 1 ? 's' : ''} selected`;
+  document.getElementById('s2-next').disabled = n === 0;
 }
 
-// ══════════════════════════════════════════════════
-// STAGE 3 — show clusters
-// ══════════════════════════════════════════════════
+// ── STAGE 3 — clusters (already in state, instant) ────────────
 function goStage3() {
   unlock(3);
   jumpTo(3);
@@ -946,7 +605,7 @@ function renderClusters() {
   container.innerHTML = '';
 
   if (!S.clusters.length) {
-    container.innerHTML = '<p style="color:var(--muted);font-size:14px">No clusters available — the agent may have had difficulty grouping these papers. You can still generate the draft.</p>';
+    container.innerHTML = '<p style="color:var(--muted);font-size:14px">No clusters available — you can still generate the draft.</p>';
     return;
   }
 
@@ -974,15 +633,31 @@ function renderClusters() {
   });
 }
 
-// ══════════════════════════════════════════════════
-// STAGE 4 — output
-// ══════════════════════════════════════════════════
+// ── STAGE 4 — call /api/summarize with selected papers ────────
 async function goStage4() {
   unlock(4);
   jumpTo(4);
   setLoader('s4', true);
   document.getElementById('s4-results').style.display = 'none';
-  renderOutput();
+  showErr('s4', '');
+
+  // Send only the papers the user selected, with full dicts
+  const selectedPapers = [...S.selected].map(i => S.papers[i]).filter(Boolean);
+
+  try {
+    const result = await callSummarize(
+      S.query,
+      S.citationStyle,
+      selectedPapers,
+      S.clusters,
+    );
+    S.narrative    = result.narrative || '';
+    S.citationList = result.citation_list || '';
+    renderOutput();
+  } catch(e) {
+    setLoader('s4', false);
+    showErr('s4', e.message);
+  }
 }
 
 function renderOutput() {
@@ -991,7 +666,6 @@ function renderOutput() {
 
   document.getElementById('s4-narrative').textContent = S.narrative ||
     'No narrative was generated. Please check your API configuration.';
-
   document.getElementById('s4-citations').textContent = S.citationList ||
     'No citations available.';
 
@@ -1008,9 +682,7 @@ function renderOutput() {
     row.innerHTML = `
       <div class="source-idx">[${i+1}]</div>
       <div class="source-body">
-        <a class="source-title" href="${p.url}" target="_blank" rel="noopener">
-          ${p.title}${oaBadge}
-        </a>
+        <a class="source-title" href="${p.url}" target="_blank" rel="noopener">${p.title}${oaBadge}</a>
         <div class="source-meta">${p.authors || ''} · ${p.year || 'n.d.'} ${cit}</div>
       </div>
     `;
@@ -1022,22 +694,17 @@ function renderOutput() {
 
 function switchTab(name) {
   document.querySelectorAll('.tab-btn').forEach((b, i) => {
-    const names = ['narrative','citations','sources'];
-    b.classList.toggle('active', names[i] === name);
+    b.classList.toggle('active', ['narrative','citations','sources'][i] === name);
   });
   document.querySelectorAll('.tab-pane').forEach(p => {
     p.classList.toggle('active', p.id === 'tab-' + name);
   });
 }
 
-// ══════════════════════════════════════════════════
-// EXPORT
-// ══════════════════════════════════════════════════
+// ── EXPORT ────────────────────────────────────────────────────
 function buildExportText() {
-  return `LITERATURE REVIEW — ${S.query}\nGenerated ${new Date().toLocaleDateString()}\n\n` +
-    `${S.narrative}\n\n---\n\nREFERENCES\n\n${S.citationList}`;
+  return `LITERATURE REVIEW — ${S.query}\nGenerated ${new Date().toLocaleDateString()}\n\n${S.narrative}\n\n---\n\nREFERENCES\n\n${S.citationList}`;
 }
-
 function exportDraft(fmt) {
   const text = buildExportText();
   if (fmt === 'copy') {
@@ -1047,11 +714,11 @@ function exportDraft(fmt) {
     });
     return;
   }
-  const ext  = fmt === 'md' ? '.md' : '.txt';
+  const ext = fmt === 'md' ? '.md' : '.txt';
   const mime = fmt === 'md' ? 'text/markdown' : 'text/plain';
   const name = 'litreview_' + S.query.replace(/\s+/g,'_').toLowerCase().slice(0,40) + ext;
-  const a    = document.createElement('a');
-  a.href     = URL.createObjectURL(new Blob([text], {type: mime}));
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: mime}));
   a.download = name; a.click();
 }
 
@@ -1067,9 +734,8 @@ function startOver() {
   jumpTo(1);
 }
 
-// Enter key
 document.getElementById('s1-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') runPipeline();
+  if (e.key === 'Enter') runFetch();
 });
 </script>
 </body>
