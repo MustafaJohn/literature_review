@@ -171,6 +171,14 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
 .re-input-card:focus-within{border-color:rgba(212,168,83,0.5);box-shadow:0 0 0 3px rgba(212,168,83,0.08)}
 .re-input-card input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:14px;padding:12px 16px}
 .search-again-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+.sort-btn{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  padding:6px 14px;border-radius:6px;
+  border:1px solid var(--border2);background:transparent;
+  color:var(--muted);cursor:pointer;transition:all 0.15s;
+}
+.sort-btn:hover{border-color:var(--gold);color:var(--gold)}
+.sort-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,83,0.08)}
 
 /* ── CLUSTERS ── */
 .cluster-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:18px 20px;margin-bottom:12px}
@@ -291,7 +299,9 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
     <div class="search-again-panel" id="s2-search-again-panel" style="display:none">
       <div class="panel-title">Refine your search</div>
       <div class="re-input-card">
-        <input id="s2-re-query" type="text" placeholder="Try different keywords or a more specific query…" onkeydown="if(event.key==='Enter') reSearch()"/>
+        <input id="s2-re-query" type="text" placeholder="Try different keywords or a more specific query…"
+          onkeydown="if(event.key==='Enter') reSearch()"
+          oninput="_updateReSearchBtn()"/>
       </div>
       <div style="margin-bottom:14px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -300,13 +310,23 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
         </div>
         <div class="slider-row">
           <span class="slider-cap">10</span>
-          <input type="range" id="s2-re-depth-slider" min="10" max="50" step="1" value="14" oninput="document.getElementById('s2-re-depth-val').textContent = this.value"/>
+          <input type="range" id="s2-re-depth-slider" min="10" max="50" step="1" value="14"
+            oninput="document.getElementById('s2-re-depth-val').textContent = this.value; _updateReSearchBtn()"/>
           <span class="slider-cap">50</span>
+        </div>
+      </div>
+      <!-- Sort toggle -->
+      <div style="margin-bottom:16px">
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Sort by</div>
+        <div style="display:flex;gap:6px">
+          <button class="sort-btn active" data-sort="relevance" onclick="setSortBy('relevance')">Most Relevant</button>
+          <button class="sort-btn" data-sort="recent" onclick="setSortBy('recent')">Most Recent</button>
+          <button class="sort-btn" data-sort="cited" onclick="setSortBy('cited')">Most Cited</button>
         </div>
       </div>
       <div class="search-again-actions">
         <button class="btn-ghost" style="padding:9px 18px;font-size:13px" onclick="toggleSearchAgain()">Cancel</button>
-        <button class="btn-primary" style="padding:9px 22px;font-size:13px" onclick="reSearch()">Search →</button>
+        <button class="btn-primary" id="s2-re-search-btn" style="padding:9px 22px;font-size:13px" onclick="reSearch()">Search →</button>
       </div>
     </div>
     <div class="papers-grid" id="s2-papers"></div>
@@ -321,14 +341,20 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
   <div class="panel" id="stage-3">
     <div class="sec">Stage 03 — Thematic clusters identified by the agent</div>
     <div class="err" id="s3-err"><span id="s3-err-msg"></span><button class="retry-btn" onclick="retryStage(3)">↺ Retry</button></div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
-      The agent has grouped your papers into thematic clusters. Review these — they will
-      structure your literature review. When ready, generate the draft.
-    </p>
-    <div id="s3-clusters"></div>
-    <div class="act-row">
-      <button class="btn-primary" onclick="goStage4()">Generate Draft →</button>
-      <button class="btn-ghost" onclick="jumpTo(2)">← Back</button>
+    <div class="loader" id="s3-loader">
+      <div class="loader-ring"></div>
+      <div class="loader-msg">Grouping your selected papers into themes…</div>
+    </div>
+    <div id="s3-results" style="display:none">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+        The agent has grouped your selected papers into thematic clusters. Review these — they will
+        structure your literature review. When ready, generate the draft.
+      </p>
+      <div id="s3-clusters"></div>
+      <div class="act-row">
+        <button class="btn-primary" onclick="goStage4()">Generate Draft →</button>
+        <button class="btn-ghost" onclick="jumpTo(2)">← Back</button>
+      </div>
     </div>
   </div>
 
@@ -373,7 +399,8 @@ const S = {
   query:         '',
   citationStyle: 'APA',
   maxResults:    14,
-  papers:        [],    // full paper dicts including abstract — sent to /api/summarize
+  sortBy:        'relevance',   // "relevance" | "recent" | "cited"
+  papers:        [],
   selected:      new Set(),
   clusters:      [],
   narrative:     '',
@@ -432,17 +459,22 @@ function setStyle(s) {
 const RETRY_FN = {
   1: () => runFetch(),
   2: () => runFetch(),
-  3: () => { renderClusters(); },   // clusters already in state — just re-render
-  4: () => goStage4(),              // re-calls /api/summarize
+  3: () => goStage3(),   // re-clusters selected papers
+  4: () => goStage4(),
 };
 function retryStage(n) { showErr('s' + n, ''); const fn = RETRY_FN[n]; if (fn) fn(); }
 
 // ── API CALLS ─────────────────────────────────────────────────
-async function callFetch(query, citationStyle, maxResults) {
+async function callFetch(query, citationStyle, maxResults, sortBy) {
   const res = await fetch(`${API_BASE}/api/fetch`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ query, citation_style: citationStyle, max_results: maxResults }),
+    body:    JSON.stringify({
+      query,
+      citation_style: citationStyle,
+      max_results:    maxResults,
+      sort_by:        sortBy,
+    }),
   });
   if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `Backend error ${res.status}`); }
   return res.json();
@@ -458,6 +490,16 @@ async function callSummarize(query, citationStyle, papers, clusters) {
   return res.json();
 }
 
+async function callCluster(query, papers) {
+  const res = await fetch(`${API_BASE}/api/cluster`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ query, papers }),
+  });
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `Backend error ${res.status}`); }
+  return res.json();
+}
+
 // ── STAGE 1 → fetch papers + clusters ────────────────────────
 async function runFetch() {
   const query = document.getElementById('s1-input').value.trim();
@@ -465,6 +507,7 @@ async function runFetch() {
   if (!query) { showErr('s1', 'Please enter a topic or paper title.'); return; }
 
   S.query    = query;
+  S.sortBy   = 'relevance';   // reset to default on fresh search
   S.papers   = [];
   S.selected = new Set();
   S.clusters = [];
@@ -473,17 +516,13 @@ async function runFetch() {
   setLoader('s1', true, `Fetching up to ${S.maxResults} papers…`);
 
   try {
-    const result = await callFetch(query, S.citationStyle, S.maxResults);
+    const result = await callFetch(query, S.citationStyle, S.maxResults, S.sortBy);
 
-    // Store full paper dicts — these get sent to /api/summarize later
-    // result.sources has slim metadata; we need to enrich with abstract from fetched_docs
-    // Backend returns sources (slim) — we store them and send back on summarize
     S.papers   = result.sources || [];
     S.clusters = result.clusters || [];
     S.selected = new Set(S.papers.map((_, i) => i));
 
     unlock(2);
-    unlock(3);   // clusters ready immediately
     jumpTo(2);
     renderPapers(result);
 
@@ -496,6 +535,23 @@ async function runFetch() {
 }
 
 // ── SEARCH AGAIN ──────────────────────────────────────────────
+function setSortBy(val) {
+  S.sortBy = val;
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === val);
+  });
+  _updateReSearchBtn();
+}
+
+function _updateReSearchBtn() {
+  // Disable Search button if query AND sort are unchanged from last search
+  const newQuery = document.getElementById('s2-re-query').value.trim();
+  const newDepth = parseInt(document.getElementById('s2-re-depth-slider').value, 10);
+  const newSort  = S.sortBy;
+  const unchanged = newQuery === S.query && newDepth === S.maxResults && newSort === (S._lastSortBy || 'relevance');
+  document.getElementById('s2-re-search-btn').disabled = unchanged;
+}
+
 function toggleSearchAgain() {
   const panel = document.getElementById('s2-search-again-panel');
   const isHidden = panel.style.display === 'none';
@@ -505,6 +561,11 @@ function toggleSearchAgain() {
     el.value = S.query; el.focus(); el.select();
     document.getElementById('s2-re-depth-slider').value = S.maxResults;
     document.getElementById('s2-re-depth-val').textContent = S.maxResults;
+    // Pre-select current sort
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sort === S.sortBy);
+    });
+    _updateReSearchBtn();
   }
 }
 
@@ -512,8 +573,11 @@ async function reSearch() {
   const newQuery = document.getElementById('s2-re-query').value.trim();
   if (!newQuery) return;
   const newDepth = parseInt(document.getElementById('s2-re-depth-slider').value, 10);
+  const newSort  = S.sortBy;
 
-  S.query = newQuery; S.maxResults = newDepth;
+  S._lastSortBy = newSort;
+  S.query       = newQuery;
+  S.maxResults  = newDepth;
   document.getElementById('s1-input').value        = newQuery;
   document.getElementById('s1-depth-slider').value = newDepth;
   updateDepth(newDepth);
@@ -525,13 +589,14 @@ async function reSearch() {
   document.getElementById('s2-status').textContent = '';
   showErr('s2', '');
 
-  document.getElementById('s2-papers').innerHTML = `<div style="padding:40px 0;text-align:center"><div class="loader-ring" style="margin:0 auto 14px"></div><div class="loader-msg">Fetching ${newDepth} papers…</div></div>`;
+  const sortLabel = { relevance: 'relevant', recent: 'recent', cited: 'most cited' }[newSort] || 'relevant';
+  document.getElementById('s2-papers').innerHTML = `<div style="padding:40px 0;text-align:center"><div class="loader-ring" style="margin:0 auto 14px"></div><div class="loader-msg">Fetching ${newDepth} ${sortLabel} papers…</div></div>`;
   document.getElementById('s2-next').disabled = true;
 
   try {
-    const result = await callFetch(newQuery, S.citationStyle, newDepth);
+    const result = await callFetch(newQuery, S.citationStyle, newDepth, newSort);
     S.papers   = result.sources || [];
-    S.clusters = result.clusters || [];
+    S.clusters = [];   // reset — clusters will be generated after user selects papers
     S.selected = new Set(S.papers.map((_, i) => i));
     document.getElementById('s2-papers').innerHTML = '';
     renderPapers(result);
@@ -550,8 +615,7 @@ function renderPapers(result) {
   const n = S.papers.length;
   status.className = 'api-status ' + (n > 0 ? 'ok' : 'warn');
   status.innerHTML = n > 0
-    ? `● ${n} papers fetched · ${result.elapsed_seconds}s · detected as <strong>${result.input_type}</strong>` +
-      (result.ss_failed ? ` · <span style="color:var(--gold)">⚠ arXiv only — SS rate limited</span>` : '')
+    ? `● ${n} papers fetched · ${result.elapsed_seconds}s · detected as <strong>${result.input_type}</strong>`
     : '⚠ No papers returned — check your query or try a different topic';
 
   const countBadge = document.getElementById('s2-paper-count');
@@ -562,7 +626,7 @@ function renderPapers(result) {
     card.className = 'paper-card selected';
     card.dataset.idx = i;
 
-    const srcLabel = p.source === 'arxiv' ? 'arXiv' : p.source === 'ddg' ? 'Web' : 'Semantic Scholar';
+    const srcLabel = p.source === 'arxiv' ? 'arXiv' : p.source === 'openalex' ? 'OpenAlex' : p.source === 'crossref' ? 'Crossref' : p.source === 'ddg' ? 'Web' : 'Unknown';
     const oaBadge  = p.is_open_access ? `<span class="oa-badge">open</span>` : '';
     const citBadge = p.citations ? `<span class="cit-badge">↗ ${p.citations.toLocaleString()}</span>` : '';
 
@@ -593,11 +657,27 @@ function updatePaperHint() {
   document.getElementById('s2-next').disabled = n === 0;
 }
 
-// ── STAGE 3 — clusters (already in state, instant) ────────────
-function goStage3() {
+// ── STAGE 3 — call /api/cluster with selected papers ─────────
+async function goStage3() {
   unlock(3);
   jumpTo(3);
-  renderClusters();
+  setLoader('s3', true);
+  document.getElementById('s3-results').style.display = 'none';
+  showErr('s3', '');
+
+  const selectedPapers = [...S.selected].map(i => S.papers[i]).filter(Boolean);
+
+  try {
+    const result = await callCluster(S.query, selectedPapers);
+    S.clusters = result.clusters || [];
+    renderClusters();
+    document.getElementById('s3-results').style.display = 'block';
+  } catch(e) {
+    setLoader('s3', false);
+    showErr('s3', e.message);
+  } finally {
+    setLoader('s3', false);
+  }
 }
 
 function renderClusters() {
@@ -725,7 +805,7 @@ function exportDraft(fmt) {
 function startOver() {
   S.query = ''; S.papers = []; S.selected = new Set();
   S.clusters = []; S.narrative = ''; S.citationList = '';
-  S.unlocked = [1]; S.current = 1; S.maxResults = 14;
+  S.unlocked = [1]; S.current = 1; S.maxResults = 14; S.sortBy = 'relevance';
   document.getElementById('s1-input').value = '';
   document.getElementById('s1-depth-slider').value = 14;
   updateDepth(14);
