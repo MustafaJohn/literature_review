@@ -2,7 +2,8 @@
 api.py — FastAPI wrapper for the Literature Review agent.
 
 Endpoints:
-  POST /api/fetch      — fetch papers + cluster (fast, ~20s)
+  POST /api/fetch      — fetch papers only (~15s)
+  POST /api/cluster    — cluster selected papers (~8s, flash model)
   POST /api/summarize  — generate narrative from selected papers + clusters (~25s)
   GET  /api/health     — health check
   GET  /               — serves frontend/index.html
@@ -39,7 +40,7 @@ from agents.summarizer import summarizer_agent
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Literature Review Agent API", version="2.0.0")
+app = FastAPI(title="Literature Review Agent API", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -57,12 +58,7 @@ class FetchRequest(BaseModel):
     query:          str = Field(..., min_length=3, max_length=500)
     citation_style: str = Field(default="APA", pattern="^(APA|IEEE)$")
     max_results:    int = Field(default=14, ge=10, le=50)
-
-class ClusterItem(BaseModel):
-    theme:          str
-    description:    str
-    paper_indices:  list[int]
-    contradictions: str | None
+    sort_by:        str = Field(default="relevance", pattern="^(relevance|recent|cited)$")
 
 class SourceItem(BaseModel):
     title:          str
@@ -77,15 +73,28 @@ class SourceItem(BaseModel):
 class FetchResponse(BaseModel):
     query:           str
     input_type:      str
-    clusters:        list[ClusterItem]
-    sources:         list[SourceItem]
+    sources:         list[SourceItem]   # no clusters — analyst runs later
     elapsed_seconds: float
     ss_failed:       bool
+
+class ClusterRequest(BaseModel):
+    query:   str
+    papers:  list[dict[str, Any]]   # selected full paper dicts from frontend
+
+class ClusterItem(BaseModel):
+    theme:          str
+    description:    str
+    paper_indices:  list[int]
+    contradictions: str | None
+
+class ClusterResponse(BaseModel):
+    clusters:        list[ClusterItem]
+    elapsed_seconds: float
 
 class SummarizeRequest(BaseModel):
     query:          str
     citation_style: str = Field(default="APA", pattern="^(APA|IEEE)$")
-    papers:         list[dict[str, Any]]   # full paper dicts from frontend
+    papers:         list[dict[str, Any]]
     clusters:       list[dict[str, Any]]
 
 class SummarizeResponse(BaseModel):
@@ -98,7 +107,7 @@ class SummarizeResponse(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "2.0.0"}
+    return {"status": "ok", "version": "3.0.0"}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -112,15 +121,15 @@ def serve_frontend():
 @app.post("/api/fetch", response_model=FetchResponse)
 def run_fetch(req: FetchRequest):
     """
-    Step 1: fetch papers and cluster them.
-    Fast (~20s). Returns papers + clusters so the user can review
-    them before triggering the slower summarizer.
+    Step 1: fetch papers only. Fast (~15s).
+    Returns all papers — user selects which ones to keep in Stage 2.
+    Clustering happens in /api/cluster after user selection.
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
 
-    logger.info("Fetch request: %s [%s] max_results=%d",
-                req.query, req.citation_style, req.max_results)
+    logger.info("Fetch request: %s [%s] max_results=%d sort_by=%s",
+                req.query, req.citation_style, req.max_results, req.sort_by)
     t0 = time.time()
 
     state: dict[str, Any] = {
@@ -128,6 +137,7 @@ def run_fetch(req: FetchRequest):
         "input_type":        "",
         "citation_style":    req.citation_style,
         "max_results":       req.max_results,
+        "sort_by":           req.sort_by,
         "fetched_docs":      [],
         "vector_results":    [],
         "graph_results":     [],
@@ -143,33 +153,67 @@ def run_fetch(req: FetchRequest):
 
     try:
         state = research_agent(state)
-        state = analyst_agent(state)
     except Exception as exc:
-        logger.exception("Fetch pipeline failed: %s", req.query)
+        logger.exception("Fetch failed: %s", req.query)
         raise HTTPException(status_code=500, detail=str(exc))
 
     elapsed = round(time.time() - t0, 2)
-    logger.info("Fetch done in %.2fs | %d sources | %d clusters | ss_failed=%s",
-                elapsed, len(state.get("sources", [])),
-                len(state.get("clusters", [])), state.get("ss_failed", False))
+    logger.info("Fetch done in %.2fs | %d sources | ss_failed=%s",
+                elapsed, len(state.get("sources", [])), state.get("ss_failed", False))
 
     return FetchResponse(
         query           = req.query,
         input_type      = state.get("input_type", "topic"),
-        clusters        = state.get("clusters", []),
         sources         = state.get("sources", []),
         elapsed_seconds = elapsed,
         ss_failed       = state.get("ss_failed", False),
     )
 
 
+@app.post("/api/cluster", response_model=ClusterResponse)
+def run_cluster(req: ClusterRequest):
+    """
+    Step 2: cluster the user-selected papers into themes.
+    Receives only the papers the user kept after Stage 2 selection.
+    Uses gemini-2.0-flash for speed (~8s).
+    """
+    if not os.environ.get("GEMINI_API_KEY"):
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
+
+    if not req.papers:
+        raise HTTPException(status_code=400, detail="No papers provided.")
+
+    logger.info("Cluster request: %s | %d papers", req.query, len(req.papers))
+    t0 = time.time()
+
+    state: dict[str, Any] = {
+        "query":             req.query,
+        "fetched_docs":      req.papers,
+        "clusters":          [],
+        "analysis_decision": "",
+        "logs":              [],
+    }
+
+    try:
+        state = analyst_agent(state)
+    except Exception as exc:
+        logger.exception("Clustering failed: %s", req.query)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    elapsed = round(time.time() - t0, 2)
+    logger.info("Cluster done in %.2fs | %d clusters", elapsed, len(state.get("clusters", [])))
+
+    return ClusterResponse(
+        clusters        = state.get("clusters", []),
+        elapsed_seconds = elapsed,
+    )
+
+
 @app.post("/api/summarize", response_model=SummarizeResponse)
 def run_summarize(req: SummarizeRequest):
     """
-    Step 2: generate narrative + citations from selected papers and clusters.
-    Called only when user clicks 'Generate Draft' — after they have reviewed
-    and optionally deselected papers in the frontend.
-    Receives full paper dicts (with abstract/text) sent back from the frontend.
+    Step 3: generate narrative + citations from selected papers and clusters.
+    Receives full paper dicts and clusters from the frontend.
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
