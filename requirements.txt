@@ -9,3 +9,4 @@ python-dotenv
 requests
 uvicorn[standard]
 python-multipart
+beautifulsoup4
