@@ -12,45 +12,15 @@ Everything else: treated as a topic.
 import re
 import logging
 from orchestration.state import LitReviewState
-from urllib.parse import unquote, urlparse
 from tools.fetch_web import fetch_papers
 
 logger = logging.getLogger(__name__)
 
 _DOI_RE    = re.compile(r"^10\.\d{4,}/")
 _QUOTE_RE  = re.compile(r'^["\'](.+)["\']$')
-_DOI_ANY_RE = re.compile(r"(10\.\d{4,9}/[-._;()/:A-Z0-9]+)", re.IGNORECASE)
-_ARXIV_URL_RE = re.compile(r"arxiv\.org/(?:abs|pdf)/([^?#]+)", re.IGNORECASE)
 
 DEFAULT_MAX_RESULTS = 14
 
-def _resolve_reference_link(link: str) -> str:
-    """
-    Convert a pasted reference link into a cleaner seed query.
-    Priority:
-      1) DOI if present in URL/text
-      2) arXiv ID if present
-      3) fallback to the original string
-    """
-    raw = (link or "").strip()
-    if not raw:
-        return ""
-
-    doi_match = _DOI_ANY_RE.search(raw)
-    if doi_match:
-        return doi_match.group(1).rstrip(").,;")
-
-    arxiv_match = _ARXIV_URL_RE.search(raw)
-    if arxiv_match:
-        arxiv_id = arxiv_match.group(1).replace(".pdf", "").strip("/")
-        return f"arXiv:{arxiv_id}"
-
-    # Non-DOI publisher links: keep URL form to maximize retrievability
-    parsed = urlparse(raw)
-    if parsed.scheme in ("http", "https") and parsed.netloc:
-        return unquote(raw)
-
-    return raw
 
 def _detect_input_type(query: str) -> str:
     """
@@ -71,25 +41,14 @@ def _detect_input_type(query: str) -> str:
 
 
 def research_agent(state: LitReviewState) -> LitReviewState:
-    input_mode = state.get("input_mode") or "topic"
-    reference_link = state.get("reference_link")
-    query = state["query"]
-
-    if input_mode == "link":
-        seed_value = reference_link or query
-        query = _resolve_reference_link(seed_value)
-        state["query"] = query
-        state["logs"] = state.get("logs", []) + [f"Seed link provided: {seed_value}"]
-        input_type = "paper"
-    else:
-        input_type = state.get("input_type") or _detect_input_type(query)
-
+    query       = state["query"]
+    input_type  = state.get("input_type") or _detect_input_type(query)
     max_results = state.get("max_results") or DEFAULT_MAX_RESULTS
     sort_by     = state.get("sort_by") or "relevance"
 
     logger.info(
-        "[researcher] Query: %s | Mode: %s | Type: %s | Max results: %d | Sort: %s",
-        query, input_mode, input_type, max_results, sort_by,
+        "[researcher] Query: %s | Detected type: %s | Max results: %d | Sort: %s",
+        query, input_type, max_results, sort_by,
     )
 
     result     = fetch_papers(query, input_type=input_type, max_results=max_results, sort_by=sort_by)
