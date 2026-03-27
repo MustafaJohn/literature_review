@@ -106,13 +106,6 @@ h1 em{font-style:italic;color:var(--gold)}
   border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
 }
 .style-btn.active{background:var(--surface3);border-color:var(--gold);color:var(--gold)}
-.mode-toggle{display:inline-flex;align-items:center;gap:4px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px}
-.mode-btn{
-  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;
-  padding:8px 12px;border-radius:6px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;transition:all 0.15s;
-}
-.mode-btn:hover{color:var(--text);border-color:var(--border2)}
-.mode-btn.active{background:var(--surface3);border-color:var(--gold);color:var(--gold)}
 .go-btn{
   background:var(--gold);color:var(--void);font-family:'IBM Plex Sans',sans-serif;
   font-size:13px;font-weight:500;border:none;border-radius:8px;padding:10px 22px;
@@ -259,19 +252,39 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
   <!-- ══════════ STAGE 1 — INPUT ══════════ -->
   <div class="panel active" id="stage-1">
     <div class="sec">Stage 01 — What are you reviewing?</div>
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="btn-mode-topic" onclick="setInputMode('topic')">Topic</button>
-      <button class="mode-btn" id="btn-mode-link" onclick="setInputMode('link')">Reference Link</button>
+
+    <!-- MODE TOGGLE -->
+    <div class="mode-toggle" style="margin-bottom:20px">
+      <button class="style-btn active" id="mode-topic-btn" onclick="setInputMode('topic')">🔍 Search by Topic</button>
+      <button class="style-btn" id="mode-paper-btn" onclick="setInputMode('paper')">🔗 Start from a Paper</button>
     </div>
-    <div class="input-card">
-      <input id="s1-input" type="text" placeholder="Topic, paper title, or DOI (e.g. transformer attention mechanisms)"/>
-      <div class="style-toggle">
-        <button class="style-btn active" id="btn-apa" onclick="setStyle('APA')">APA</button>
-        <button class="style-btn" id="btn-ieee" onclick="setStyle('IEEE')">IEEE</button>
+
+    <!-- TOPIC MODE (default) -->
+    <div id="s1-topic-zone">
+      <div class="input-card">
+        <input id="s1-input" type="text" placeholder="Topic or keywords  (e.g. transformer attention mechanisms)"/>
+        <div class="style-toggle">
+          <button class="style-btn active" id="btn-apa" onclick="setStyle('APA')">APA</button>
+          <button class="style-btn" id="btn-ieee" onclick="setStyle('IEEE')">IEEE</button>
+        </div>
+        <button class="go-btn" id="s1-btn" onclick="runFetch()">Fetch Papers →</button>
       </div>
-      <button class="go-btn" id="s1-btn" onclick="runFetch()">Fetch Papers →</button>
+      <p class="input-hint">Enter keywords, a broad topic, or a specific research question.</p>
     </div>
-    <p class="input-hint" id="s1-input-hint">Accepts: topic keywords<span>·</span>paper title (quote for exact match)<span>·</span>DOI (10.xxx/...)</p>
+
+    <!-- PAPER MODE -->
+    <div id="s1-paper-zone" style="display:none">
+      <div class="input-card">
+        <input id="s1-paper-input" type="text" placeholder="Paste a URL, DOI URL, or bare DOI  (e.g. https://doi.org/10.1093/...)"/>
+        <div class="style-toggle">
+          <button class="style-btn active" id="btn-apa-paper" onclick="setStyle('APA')">APA</button>
+          <button class="style-btn" id="btn-ieee-paper" onclick="setStyle('IEEE')">IEEE</button>
+        </div>
+        <button class="go-btn" id="s1-paper-btn" onclick="runFetchFromPaper()">Find Similar →</button>
+      </div>
+      <p class="input-hint">Paste a link your professor shared — the tool will find papers that reference or relate to it.</p>
+    </div>
+
     <div class="depth-control">
       <div class="depth-header">
         <span class="depth-label">Search depth</span>
@@ -408,10 +421,11 @@ const API_BASE = '';
 // ── STATE ─────────────────────────────────────────────────────
 const S = {
   query:         '',
-  inputMode:     'topic',      // "topic" | "link"
   citationStyle: 'APA',
   maxResults:    14,
-  sortBy:        'relevance',   // "relevance" | "recent" | "cited"
+  sortBy:        'relevance',
+  inputMode:     'topic',     // "topic" | "paper"
+  seedPaper:     null,        // set when paper-seeded mode resolves a seed
   papers:        [],
   selected:      new Set(),
   clusters:      [],
@@ -466,32 +480,21 @@ function setStyle(s) {
   S.citationStyle = s;
   document.getElementById('btn-apa').classList.toggle('active', s === 'APA');
   document.getElementById('btn-ieee').classList.toggle('active', s === 'IEEE');
+  // sync paper mode buttons too
+  const aP = document.getElementById('btn-apa-paper');
+  const iP = document.getElementById('btn-ieee-paper');
+  if (aP) aP.classList.toggle('active', s === 'APA');
+  if (iP) iP.classList.toggle('active', s === 'IEEE');
 }
 
 function setInputMode(mode) {
   S.inputMode = mode;
-  document.getElementById('btn-mode-topic').classList.toggle('active', mode === 'topic');
-  document.getElementById('btn-mode-link').classList.toggle('active', mode === 'link');
+  document.getElementById('mode-topic-btn').classList.toggle('active', mode === 'topic');
+  document.getElementById('mode-paper-btn').classList.toggle('active', mode === 'paper');
+  document.getElementById('s1-topic-zone').style.display = mode === 'topic' ? 'block' : 'none';
+  document.getElementById('s1-paper-zone').style.display = mode === 'paper' ? 'block' : 'none';
   showErr('s1', '');
-
-  const input = document.getElementById('s1-input');
-  const hint = document.getElementById('s1-input-hint');
-  if (mode === 'link') {
-    input.placeholder = 'Paste paper URL (DOI/arXiv/OpenAlex/publisher)…';
-    hint.innerHTML = 'Accepts: DOI URL<span>·</span>arXiv URL<span>·</span>OpenAlex / publisher links';
-  } else {
-    input.placeholder = 'Topic, paper title, or DOI (e.g. transformer attention mechanisms)';
-    hint.innerHTML = 'Accepts: topic keywords<span>·</span>paper title (quote for exact match)<span>·</span>DOI (10.xxx/...)';
-  }
-}
-
-function isValidHttpUrl(value) {
-  try {
-    const parsed = new URL(value);
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
+  if (mode === 'paper') document.getElementById('s1-paper-input').focus();
 }
 
 const RETRY_FN = {
@@ -542,14 +545,7 @@ async function callCluster(query, papers) {
 async function runFetch() {
   const query = document.getElementById('s1-input').value.trim();
   showErr('s1', '');
-  if (!query) {
-    showErr('s1', S.inputMode === 'link' ? 'Please paste a valid paper URL.' : 'Please enter a topic or paper title.');
-    return;
-  }
-  if (S.inputMode === 'link' && !isValidHttpUrl(query)) {
-    showErr('s1', 'Reference Link mode accepts only valid http(s) URLs.');
-    return;
-  }
+  if (!query) { showErr('s1', 'Please enter a topic or paper title.'); return; }
 
   S.query    = query;
   S.sortBy   = 'relevance';   // reset to default on fresh search
@@ -579,7 +575,49 @@ async function runFetch() {
   }
 }
 
-// ── SEARCH AGAIN ──────────────────────────────────────────────
+// ── STAGE 1 → paper-seeded fetch ─────────────────────────────
+async function runFetchFromPaper() {
+  const urlOrDoi = document.getElementById('s1-paper-input').value.trim();
+  showErr('s1', '');
+  if (!urlOrDoi) { showErr('s1', 'Please paste a URL or DOI.'); return; }
+
+  S.papers   = [];
+  S.selected = new Set();
+  S.clusters = [];
+  S.seedPaper = null;
+
+  document.getElementById('s1-paper-btn').disabled = true;
+  setLoader('s1', true, 'Resolving paper and finding related works…');
+
+  try {
+    const res = await fetch(`${API_BASE}/api/fetch_from_paper`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        url_or_doi:     urlOrDoi,
+        citation_style: S.citationStyle,
+        max_results:    S.maxResults,
+      }),
+    });
+    if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.detail || `Backend error ${res.status}`); }
+    const result = await res.json();
+
+    S.query    = result.query;   // seed paper title used as query downstream
+    S.papers   = result.sources || [];
+    S.clusters = [];
+    S.selected = new Set(S.papers.map((_, i) => i));
+
+    unlock(2);
+    jumpTo(2);
+    renderPapers(result);
+
+  } catch(e) {
+    showErr('s1', e.message);
+  } finally {
+    setLoader('s1', false);
+    document.getElementById('s1-paper-btn').disabled = false;
+  }
+}
 function setSortBy(val) {
   S.sortBy = val;
   document.querySelectorAll('.sort-btn').forEach(btn => {
@@ -662,6 +700,18 @@ function renderPapers(result) {
   status.innerHTML = n > 0
     ? `● ${n} papers fetched · ${result.elapsed_seconds}s · detected as <strong>${result.input_type}</strong>`
     : '⚠ No papers returned — check your query or try a different topic';
+
+  // Seed paper banner for paper-seeded mode
+  const existingBanner = document.getElementById('s2-seed-banner');
+  if (existingBanner) existingBanner.remove();
+  if (result.input_type === 'paper' && S.papers.length > 0) {
+    const seedTitle = result.query;   // seed paper title returned as query
+    const banner = document.createElement('div');
+    banner.id = 's2-seed-banner';
+    banner.style.cssText = 'background:rgba(212,168,83,0.06);border:1px solid rgba(212,168,83,0.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;font-family:"IBM Plex Mono",monospace;color:var(--gold);display:flex;align-items:flex-start;gap:10px';
+    banner.innerHTML = `<span style="flex-shrink:0">🔗</span><span>Seeded from: <strong>${seedTitle}</strong> — showing references and related works</span>`;
+    grid.before(banner);
+  }
 
   const countBadge = document.getElementById('s2-paper-count');
   if (countBadge) countBadge.textContent = `${n} paper${n !== 1 ? 's' : ''}`;
@@ -850,11 +900,13 @@ function exportDraft(fmt) {
 function startOver() {
   S.query = ''; S.papers = []; S.selected = new Set();
   S.clusters = []; S.narrative = ''; S.citationList = '';
-  S.unlocked = [1]; S.current = 1; S.maxResults = 14; S.sortBy = 'relevance'; S.inputMode = 'topic';
+  S.unlocked = [1]; S.current = 1; S.maxResults = 14;
+  S.sortBy = 'relevance'; S.inputMode = 'topic'; S.seedPaper = null;
   document.getElementById('s1-input').value = '';
+  document.getElementById('s1-paper-input').value = '';
+  setInputMode('topic');
   document.getElementById('s1-depth-slider').value = 14;
   updateDepth(14);
-  setInputMode('topic');
   document.getElementById('export-bar').classList.remove('show');
   document.getElementById('s2-search-again-panel').style.display = 'none';
   jumpTo(1);
@@ -862,6 +914,9 @@ function startOver() {
 
 document.getElementById('s1-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') runFetch();
+});
+document.getElementById('s1-paper-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runFetchFromPaper();
 });
 </script>
 </body>
