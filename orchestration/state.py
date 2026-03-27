@@ -4,6 +4,8 @@ from typing import TypedDict, List, Dict, Any, Optional
 class LitReviewState(TypedDict):
     # ── Input ──────────────────────────────────────────
     query:          str          # topic string OR paper title/DOI
+    input_mode:     str          # "topic" | "link"
+    reference_link: Optional[str]
     input_type:     str          # "topic" | "paper"
     citation_style: str          # "APA" | "IEEE"
     max_results:    int          # papers to fetch (10-50, default 14)
