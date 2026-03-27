@@ -144,7 +144,7 @@ def _openalex_search(query: str, limit: int = 10,
                 "search.title_and_abstract": query,
                 "filter":                    "has_abstract:true",
                 "sort":                      oa_sort,
-                #"per_page":                  limit,
+                "per_page":                  limit,
                 "select":                    "id,title,abstract_inverted_index,authorships,"
                                              "publication_year,cited_by_count,doi,"
                                              "primary_location,open_access",
@@ -229,7 +229,7 @@ def _crossref_search(query: str, limit: int = 8,
             CROSSREF_URL,
             params={
                 "query.title": query,
-                #"rows":        limit,
+                "rows":        limit,
                 "select":      "DOI,title,author,published,type,"
                                "container-title,is-referenced-by-count",
                 "sort":        cr_sort,
@@ -343,7 +343,7 @@ def _arxiv_search(query: str, limit: int = 6,
             params={
                 "search_query": f"all:{query}",
                 "start":        0,
-                #"max_results":  limit,
+                "max_results":  limit,
                 "sortBy":       arxiv_sort,
             },
             timeout=25,
@@ -481,6 +481,298 @@ def fetch_papers(query: str, input_type: str = "topic",
 
 
 # ─────────────────────────────────────────────────────────────
+# Public: paper-seeded fetch
+# ─────────────────────────────────────────────────────────────
+
+def _extract_doi_from_input(raw: str) -> Optional[str]:
+    """
+    Extract a DOI from whatever the user pasted:
+      - Bare DOI:          10.1093/ojls/gqac001
+      - DOI URL:           https://doi.org/10.1093/ojls/gqac001
+      - Any academic URL:  scrape the page and look for citation_doi meta tag
+                           or a doi.org link in the HTML
+    Returns the bare DOI string (without https://doi.org/) or None.
+    """
+    raw = raw.strip()
+
+    # Bare DOI
+    if re.match(r"^10\.\d{4,}/", raw):
+        return raw
+
+    # doi.org URL
+    m = re.search(r"doi\.org/(10\.\d{4,}/\S+)", raw)
+    if m:
+        return m.group(1).rstrip(".,;)")
+
+    # Any other URL — fetch the page and look for DOI signals
+    if raw.startswith("http"):
+        try:
+            r = requests.get(raw, timeout=12,
+                             headers={"User-Agent": "lit-review-agent/1.0"},
+                             allow_redirects=True)
+            r.raise_for_status()
+
+            # Check if we ended up at a doi.org redirect
+            final_url = r.url
+            m = re.search(r"doi\.org/(10\.\d{4,}/\S+)", final_url)
+            if m:
+                return m.group(1).rstrip(".,;)")
+
+            soup = BeautifulSoup(r.text, "html.parser")
+
+            # citation_doi meta tag (widely adopted by publishers)
+            meta = soup.find("meta", attrs={"name": "citation_doi"})
+            if meta and meta.get("content", "").strip():
+                doi = meta["content"].strip().replace("https://doi.org/", "")
+                if re.match(r"^10\.\d{4,}/", doi):
+                    return doi
+
+            # DC.Identifier meta tag
+            meta = soup.find("meta", attrs={"name": re.compile(r"DC\.Identifier", re.I)})
+            if meta and meta.get("content", ""):
+                m = re.search(r"10\.\d{4,}/\S+", meta["content"])
+                if m:
+                    return m.group(0).rstrip(".,;)")
+
+            # Any doi.org link in the HTML
+            for a in soup.find_all("a", href=True):
+                m = re.search(r"doi\.org/(10\.\d{4,}/\S+)", a["href"])
+                if m:
+                    return m.group(1).rstrip(".,;)")
+
+        except Exception as e:
+            logger.warning("URL DOI extraction failed for %s: %s", raw, e)
+
+    return None
+
+
+def _openalex_resolve_doi(doi: str) -> Optional[dict]:
+    """
+    Look up a single paper in OpenAlex by DOI.
+    Returns normalised paper dict or None.
+    """
+    try:
+        r = requests.get(
+            f"{OPENALEX_URL}/doi:{doi}",
+            params={"select": "id,title,abstract_inverted_index,authorships,"
+                              "publication_year,cited_by_count,doi,"
+                              "primary_location,open_access,referenced_works,related_works"},
+            headers=_HEADERS,
+            timeout=15,
+        )
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        logger.warning("OpenAlex DOI resolve failed (%s): %s", doi, e)
+        return None
+
+
+def _openalex_fetch_related(openalex_id: str, max_results: int = 20) -> list[dict]:
+    """
+    Fetch referenced works and related works for a given OpenAlex work ID.
+    Both endpoints return lists of OpenAlex IDs — we then batch-fetch their metadata.
+    """
+    ids = set()
+
+    for endpoint in ["references", "related_works"]:
+        try:
+            r = requests.get(
+                f"{OPENALEX_URL}/{openalex_id.split('/')[-1]}/{endpoint}",
+                params={"per_page": max_results,
+                        "select":   "id,title,abstract_inverted_index,authorships,"
+                                    "publication_year,cited_by_count,doi,"
+                                    "primary_location,open_access"},
+                headers=_HEADERS,
+                timeout=15,
+            )
+            r.raise_for_status()
+            for work in r.json().get("results", []):
+                ids.add(work.get("id", ""))
+        except Exception as e:
+            logger.warning("OpenAlex %s fetch failed for %s: %s", endpoint, openalex_id, e)
+
+    if not ids:
+        return []
+
+    # Batch fetch metadata for all collected IDs
+    id_filter = "|".join(list(ids)[:max_results])
+    try:
+        r = requests.get(
+            OPENALEX_URL,
+            params={"filter":   f"ids.openalex:{id_filter}",
+                    "per_page": max_results,
+                    "select":   "id,title,abstract_inverted_index,authorships,"
+                                "publication_year,cited_by_count,doi,"
+                                "primary_location,open_access"},
+            headers=_HEADERS,
+            timeout=20,
+        )
+        r.raise_for_status()
+        works = r.json().get("results", [])
+    except Exception as e:
+        logger.warning("OpenAlex batch fetch failed: %s", e)
+        return []
+
+    results = []
+    for work in works:
+        title    = (work.get("title") or "").strip()
+        abstract = _reconstruct_abstract(work.get("abstract_inverted_index"))
+        if not title or not abstract or len(abstract) < 80:
+            continue
+
+        authorships = work.get("authorships") or []
+        authors = ", ".join(
+            a.get("author", {}).get("display_name", "")
+            for a in authorships[:4]
+            if a.get("author", {}).get("display_name")
+        )
+        year    = work.get("publication_year")
+        doi     = (work.get("doi") or "").replace("https://doi.org/", "") or None
+        oa_info = work.get("open_access") or {}
+        is_open = bool(oa_info.get("is_oa"))
+        oa_url  = oa_info.get("oa_url")
+        location = work.get("primary_location") or {}
+        url = (
+            oa_url
+            or location.get("landing_page_url")
+            or (f"https://doi.org/{doi}" if doi else None)
+            or work.get("id", "")
+        )
+        results.append({
+            "source":         "openalex",
+            "paper_id":       work.get("id", ""),
+            "title":          title,
+            "authors":        authors or None,
+            "year":           year,
+            "abstract":       abstract,
+            "citations":      work.get("cited_by_count"),
+            "url":            url or "",
+            "is_open_access": is_open,
+            "doi":            doi,
+            "arxiv_id":       None,
+            "text":           abstract,
+        })
+
+    return results
+
+
+def _normalise_openalex_work(work: dict) -> Optional[dict]:
+    """Normalise a raw OpenAlex work dict to the standard paper shape."""
+    title    = (work.get("title") or "").strip()
+    abstract = _reconstruct_abstract(work.get("abstract_inverted_index"))
+    if not title:
+        return None
+
+    authorships = work.get("authorships") or []
+    authors = ", ".join(
+        a.get("author", {}).get("display_name", "")
+        for a in authorships[:4]
+        if a.get("author", {}).get("display_name")
+    )
+    year    = work.get("publication_year")
+    doi     = (work.get("doi") or "").replace("https://doi.org/", "") or None
+    oa_info = work.get("open_access") or {}
+    is_open = bool(oa_info.get("is_oa"))
+    oa_url  = oa_info.get("oa_url")
+    location = work.get("primary_location") or {}
+    url = (
+        oa_url
+        or location.get("landing_page_url")
+        or (f"https://doi.org/{doi}" if doi else None)
+        or work.get("id", "")
+    )
+    return {
+        "source":         "openalex",
+        "paper_id":       work.get("id", ""),
+        "title":          title,
+        "authors":        authors or None,
+        "year":           year,
+        "abstract":       abstract or "",
+        "citations":      work.get("cited_by_count"),
+        "url":            url or "",
+        "is_open_access": is_open,
+        "doi":            doi,
+        "arxiv_id":       None,
+        "text":           abstract or "",
+    }
+
+
+def fetch_from_paper(url_or_doi: str, max_results: int = 14) -> dict:
+    """
+    Seed a search from a single URL, DOI URL, or bare DOI.
+
+    Steps:
+    1. Extract DOI from whatever the user pasted
+    2. Resolve the seed paper via OpenAlex DOI lookup
+    3. Fetch references + related works from OpenAlex
+    4. Also run keyword search on seed paper title for broader coverage
+    5. Merge, dedup, return
+
+    Falls back to keyword search on the raw input if DOI extraction fails.
+    """
+    # Step 1: extract DOI
+    doi = _extract_doi_from_input(url_or_doi)
+
+    if not doi:
+        logger.warning("Could not extract DOI from '%s' — falling back to keyword search", url_or_doi)
+        return fetch_papers(url_or_doi, max_results=max_results)
+
+    logger.info("[paper-seed] Resolved DOI: %s", doi)
+
+    # Step 2: resolve seed paper
+    raw_seed = _openalex_resolve_doi(doi)
+    seed_paper = _normalise_openalex_work(raw_seed) if raw_seed else None
+
+    if not seed_paper:
+        logger.warning("[paper-seed] OpenAlex could not resolve DOI %s — keyword fallback", doi)
+        return fetch_papers(url_or_doi, max_results=max_results)
+
+    logger.info("[paper-seed] Seed paper: %s", seed_paper["title"])
+
+    # Step 3 + 4: fetch related works AND keyword search in parallel
+    openalex_id   = raw_seed.get("id", "")
+    related_limit = min(max_results * 2, 30)
+
+    related_results  = []
+    keyword_results  = []
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        future_related = executor.submit(_openalex_fetch_related, openalex_id, related_limit)
+        future_keyword = executor.submit(_openalex_search, seed_paper["title"], min(max_results, 10))
+
+        futures = {future_related: "related", future_keyword: "keyword"}
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                result = future.result()
+                if name == "related":
+                    related_results = result
+                else:
+                    keyword_results = result
+                logger.info("[paper-seed] %s fetch done: %d results", name, len(result))
+            except Exception as e:
+                logger.warning("[paper-seed] %s fetch failed: %s", name, e)
+
+    # Seed paper first, then related, then keyword search
+    all_papers = _dedup_and_rank(
+        [seed_paper] + related_results + keyword_results, max_results
+    )
+
+    logger.info("[paper-seed] Total after dedup: %d papers", len(all_papers))
+
+    return {
+        "papers":       all_papers,
+        "api_worked":   len(all_papers) > 0,
+        "sources_used": ["openalex"],
+        "seed_paper":   seed_paper,
+        "ss_failed":    False,
+        "sort_by":      "relevance",
+    }
+
+
+# ─────────────────────────────────────────────────────────────
 # LLM context formatter
 # ─────────────────────────────────────────────────────────────
 
@@ -553,3 +845,8 @@ if __name__ == "__main__":
         print(f"Done in {_time.time()-t0:.1f}s — {len(r['papers'])} papers | sources: {r['sources_used']}")
         print(papers_to_llm_context(r["papers"][:2]))
         print("---")
+
+
+# ─────────────────────────────────────────────────────────────
+# Internal: reconstruct abstract from OpenAlex inverted index
+# ─────────────────────────────────────────────────────────────
