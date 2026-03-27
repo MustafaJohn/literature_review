@@ -423,9 +423,9 @@ def fetch_papers(query: str, input_type: str = "topic",
     sort_by: "relevance" | "recent" | "cited"
     input_type kept for API compatibility.
     """
-    openalex_limit  = min(max_results, 12)
-    crossref_limit  = min(max_results, 8)
-    arxiv_limit     = min(max_results, 6)
+    openalex_limit  = max(max_results, 12)
+    crossref_limit  = max(max_results, 8)
+    arxiv_limit     = max(max_results, 6)
 
     openalex_results  = []
     crossref_results  = []
@@ -740,7 +740,7 @@ def fetch_from_paper(url_or_doi: str, max_results: int = 14) -> dict:
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_related = executor.submit(_openalex_fetch_related, openalex_id, related_limit)
-        future_keyword = executor.submit(_openalex_search, seed_paper["title"], min(max_results, 10))
+        future_keyword = executor.submit(_openalex_search, seed_paper["title"], max(max_results, 10))
 
         futures = {future_related: "related", future_keyword: "keyword"}
         for future in as_completed(futures):
