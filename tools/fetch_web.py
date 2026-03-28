@@ -423,9 +423,9 @@ def fetch_papers(query: str, input_type: str = "topic",
     sort_by: "relevance" | "recent" | "cited"
     input_type kept for API compatibility.
     """
-    openalex_limit  = max(max_results, 12)
-    crossref_limit  = max(max_results, 8)
-    arxiv_limit     = max(max_results, 6)
+    openalex_limit  = min(max_results, 12)
+    crossref_limit  = min(max_results, 8)
+    arxiv_limit     = min(max_results, 6)
 
     openalex_results  = []
     crossref_results  = []
@@ -731,41 +731,61 @@ def fetch_from_paper(url_or_doi: str, max_results: int = 14) -> dict:
 
     logger.info("[paper-seed] Seed paper: %s", seed_paper["title"])
 
-    # Step 3 + 4: fetch related works AND keyword search in parallel
+    # Step 3 + 4: fetch related works AND multi-source keyword search in parallel
     openalex_id   = raw_seed.get("id", "")
     related_limit = min(max_results * 2, 30)
+    kw_limit      = min(max_results, 10)
 
     related_results  = []
-    keyword_results  = []
+    oa_kw_results    = []
+    crossref_results = []
+    arxiv_results    = []
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        future_related = executor.submit(_openalex_fetch_related, openalex_id, related_limit)
-        future_keyword = executor.submit(_openalex_search, seed_paper["title"], max(max_results, 10))
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        future_related   = executor.submit(_openalex_fetch_related, openalex_id, related_limit)
+        future_oa_kw     = executor.submit(_openalex_search,  seed_paper["title"], kw_limit)
+        future_crossref  = executor.submit(_crossref_search,  seed_paper["title"], kw_limit)
+        future_arxiv     = executor.submit(_arxiv_search,     seed_paper["title"], kw_limit)
 
-        futures = {future_related: "related", future_keyword: "keyword"}
+        futures = {
+            future_related:  "related",
+            future_oa_kw:    "openalex-kw",
+            future_crossref: "crossref",
+            future_arxiv:    "arxiv",
+        }
         for future in as_completed(futures):
             name = futures[future]
             try:
                 result = future.result()
                 if name == "related":
                     related_results = result
+                elif name == "openalex-kw":
+                    oa_kw_results = result
+                elif name == "crossref":
+                    crossref_results = result
                 else:
-                    keyword_results = result
+                    arxiv_results = result
                 logger.info("[paper-seed] %s fetch done: %d results", name, len(result))
             except Exception as e:
                 logger.warning("[paper-seed] %s fetch failed: %s", name, e)
 
-    # Seed paper first, then related, then keyword search
+    # Seed paper first, then OpenAlex related, then keyword results from all sources
     all_papers = _dedup_and_rank(
-        [seed_paper] + related_results + keyword_results, max_results
+        [seed_paper] + related_results + oa_kw_results + crossref_results + arxiv_results,
+        max_results
     )
 
-    logger.info("[paper-seed] Total after dedup: %d papers", len(all_papers))
+    sources_used = ["openalex"]
+    if crossref_results:  sources_used.append("crossref")
+    if arxiv_results:     sources_used.append("arxiv")
+
+    logger.info("[paper-seed] Total after dedup: %d papers | sources: %s",
+                len(all_papers), sources_used)
 
     return {
         "papers":       all_papers,
         "api_worked":   len(all_papers) > 0,
-        "sources_used": ["openalex"],
+        "sources_used": sources_used,
         "seed_paper":   seed_paper,
         "ss_failed":    False,
         "sort_by":      "relevance",
