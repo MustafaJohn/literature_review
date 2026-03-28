@@ -797,15 +797,22 @@ def fetch_from_paper(url_or_doi: str, max_results: int = 14) -> dict:
     kw_limit      = min(max_results, 10)
 
     related_results  = []
+    # Build a keyword query from the seed title — shorter queries work better
+    # in OpenAlex than full titles. Take top 6 terms by length (longer words
+    # are more semantically specific) after stripping stop words.
+    title_terms = _parse_query_terms(seed_paper["title"])
+    kw_query    = " ".join(sorted(title_terms, key=len, reverse=True)[:6])
+    logger.info("[paper-seed] Keyword query: '%s'", kw_query)
+
     oa_kw_results    = []
     crossref_results = []
     arxiv_results    = []
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         future_related   = executor.submit(_openalex_fetch_related, openalex_id, related_limit)
-        future_oa_kw     = executor.submit(_openalex_search,  seed_paper["title"], kw_limit)
-        future_crossref  = executor.submit(_crossref_search,  seed_paper["title"], kw_limit)
-        future_arxiv     = executor.submit(_arxiv_search,     seed_paper["title"], kw_limit)
+        future_oa_kw     = executor.submit(_openalex_search,  kw_query, kw_limit)
+        future_crossref  = executor.submit(_crossref_search,  kw_query, kw_limit)
+        future_arxiv     = executor.submit(_arxiv_search,     kw_query, kw_limit)
 
         futures = {
             future_related:  "related",
