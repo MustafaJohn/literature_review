@@ -386,15 +386,68 @@ def _arxiv_search(query: str, limit: int = 6,
 
 
 # ─────────────────────────────────────────────────────────────
+# Internal: relevance scoring
+# ─────────────────────────────────────────────────────────────
+
+# Stop words to exclude from query term matching
+_STOP_WORDS = {
+    "a", "an", "the", "and", "or", "of", "in", "on", "at", "to", "for",
+    "with", "by", "from", "is", "are", "was", "were", "be", "been", "as",
+    "its", "it", "this", "that", "these", "those", "their", "which", "who",
+    "how", "what", "when", "where", "via", "into", "within", "between",
+    "about", "through", "during", "under", "over", "after", "before",
+}
+
+def _relevance_score(paper: dict, query_terms: set[str]) -> float:
+    """
+    Compute a relevance score between 0.0 and 1.0 based on query term overlap.
+
+    Title matches are weighted 2x — a paper whose title contains the query
+    terms is almost certainly on-topic. Abstract matches count at 1x.
+
+    Score = (2 * title_hits + abstract_hits) / (2 * len(query_terms))
+
+    This is topic-agnostic: it works for law, STEM, humanities, anything.
+    A neutron star paper scores ~0 against a legal query without any
+    domain classification needed.
+    """
+    if not query_terms:
+        return 0.0
+
+    title    = re.sub(r"[^a-z0-9 ]", "", (paper.get("title")    or "").lower())
+    abstract = re.sub(r"[^a-z0-9 ]", "", (paper.get("abstract") or "").lower())
+
+    title_words    = set(title.split())
+    abstract_words = set(abstract.split())
+
+    title_hits    = len(query_terms & title_words)
+    abstract_hits = len(query_terms & abstract_words)
+
+    return (2 * title_hits + abstract_hits) / (2 * len(query_terms))
+
+
+def _parse_query_terms(query: str) -> set[str]:
+    """Extract meaningful terms from the query, stripping stop words."""
+    tokens = re.sub(r"[^a-z0-9 ]", "", query.lower()).split()
+    return {t for t in tokens if t not in _STOP_WORDS and len(t) > 2}
+
+
+# ─────────────────────────────────────────────────────────────
 # Internal: deduplicate and rank
 # ─────────────────────────────────────────────────────────────
 
-def _dedup_and_rank(papers: list[dict], max_results: int) -> list[dict]:
+def _dedup_and_rank(papers: list[dict], max_results: int,
+                    query: str = "") -> list[dict]:
     """
-    Deduplicate by normalised title — first-seen wins.
-    Merge order: OpenAlex → Crossref → arXiv.
-    OpenAlex wins on overlap since it has structured metadata.
-    Rank: open access first, then citation count descending.
+    Deduplicate by normalised title — first-seen wins so source priority
+    (OpenAlex > Crossref > arXiv) determines which record survives on overlap.
+
+    Rank by:
+      1. Relevance score (query term overlap, title weighted 2x) — primary
+      2. Citation count descending — tiebreaker for equally relevant papers
+
+    This is fully topic-agnostic: astrophysics papers score ~0 against a
+    legal query and sink to the bottom without any domain classification.
     """
     seen, merged = set(), []
     for p in papers:
@@ -404,10 +457,17 @@ def _dedup_and_rank(papers: list[dict], max_results: int) -> list[dict]:
         seen.add(key)
         merged.append(p)
 
-    merged.sort(key=lambda p: (
-        not p["is_open_access"],
-        -(p["citations"] or -1),
-    ))
+    query_terms = _parse_query_terms(query)
+
+    if query_terms:
+        merged.sort(key=lambda p: (
+            -_relevance_score(p, query_terms),
+            -(p.get("citations") or -1),
+        ))
+    else:
+        # No query provided (shouldn't happen) — fall back to citation count
+        merged.sort(key=lambda p: -(p.get("citations") or -1))
+
     return merged[:max_results]
 
 
@@ -457,7 +517,7 @@ def fetch_papers(query: str, input_type: str = "topic",
 
     # OpenAlex first → wins on dedup
     all_papers = _dedup_and_rank(
-        openalex_results + crossref_results + arxiv_results, max_results
+        openalex_results + crossref_results + arxiv_results, max_results, query
     )
 
     sources_used = []
@@ -772,7 +832,8 @@ def fetch_from_paper(url_or_doi: str, max_results: int = 14) -> dict:
     # Seed paper first, then OpenAlex related, then keyword results from all sources
     all_papers = _dedup_and_rank(
         [seed_paper] + related_results + oa_kw_results + crossref_results + arxiv_results,
-        max_results
+        max_results,
+        seed_paper["title"],   # rank by relevance to seed paper title
     )
 
     sources_used = ["openalex"]
