@@ -231,6 +231,7 @@ def run_fetch_from_paper(req: PaperFetchRequest):
 
 
 
+@app.post("/api/cluster", response_model=ClusterResponse)
 def run_cluster(req: ClusterRequest):
     """
     Step 2: cluster the user-selected papers into themes.
