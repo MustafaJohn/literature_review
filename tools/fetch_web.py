@@ -120,7 +120,7 @@ Now decompose: {query}
 """
         
         # Use Flash model for speed (1-2s vs 3-4s for Pro)
-        response = call_llm(prompt, model="gemini-2.0-flash-exp")
+        response = call_llm(prompt, model="gemini-2.5-flash")
         
         # Parse numbered list
         sub_topics = [query]  # Always include original query first
