@@ -51,7 +51,7 @@ def research_agent(state: LitReviewState) -> LitReviewState:
         query, input_type, max_results, sort_by,
     )
 
-    result     = fetch_papers(query, input_type=input_type, max_results=max_results, sort_by=sort_by)
+    result     = fetch_papers(query, input_type=input_type, max_results=max_results, sort_by=sort_by, generate_breakdown=True)
     all_papers = result["papers"]
 
     valid_docs = [p for p in all_papers if _is_valid(p)]
