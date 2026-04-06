@@ -592,6 +592,7 @@ async function runFetch() {
 
     S.papers   = result.sources || [];
     S.clusters = result.clusters || [];
+    S.breakdown = result.breakdown || null; 
     S.selected = new Set(S.papers.map((_, i) => i));
 
     unlock(2);
