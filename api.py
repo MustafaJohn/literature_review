@@ -36,7 +36,7 @@ from pydantic import BaseModel, Field
 from agents.researcher import research_agent
 from agents.analyst import analyst_agent
 from agents.summarizer import summarizer_agent
-from tools.fetch_web import fetch_from_paper
+from tools.fetch_web import fetch_from_paper, generate_research_breakdown
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -76,12 +76,21 @@ class SourceItem(BaseModel):
     doi:            str | None
     source:         str
 
+class BreakdownSection(BaseModel):
+    heading: str
+    content: str
+
+class BreakdownItem(BaseModel):
+    title:    str
+    sections: list[BreakdownSection]
+
 class FetchResponse(BaseModel):
     query:           str
     input_type:      str
-    sources:         list[SourceItem]   # no clusters — analyst runs later
+    sources:         list[SourceItem]
     elapsed_seconds: float
     ss_failed:       bool
+    breakdown:       BreakdownItem
 
 class ClusterRequest(BaseModel):
     query:   str
@@ -173,6 +182,8 @@ def run_fetch(req: FetchRequest):
         sources         = state.get("sources", []),
         elapsed_seconds = elapsed,
         ss_failed       = state.get("ss_failed", False),
+        breakdown       = generate_research_breakdown(req.query),
+    )
     )
 
 
@@ -221,12 +232,15 @@ def run_fetch_from_paper(req: PaperFetchRequest):
     logger.info("Paper-seed done in %.2fs | %d papers | seed: %s",
                 elapsed, len(papers), seed["title"] if seed else "none")
 
+    seed_title = seed["title"] if seed else req.url_or_doi
+
     return FetchResponse(
-        query           = seed["title"] if seed else req.url_or_doi,
+        query           = seed_title,
         input_type      = "paper",
         sources         = sources,
         elapsed_seconds = elapsed,
         ss_failed       = False,
+        breakdown       = generate_research_breakdown(seed_title),
     )
 
 
@@ -236,7 +250,7 @@ def run_cluster(req: ClusterRequest):
     """
     Step 2: cluster the user-selected papers into themes.
     Receives only the papers the user kept after Stage 2 selection.
-    Uses gemini-2.0-flash for speed (~8s).
+    Uses gemini-2.5-flash for speed (~8s).
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
