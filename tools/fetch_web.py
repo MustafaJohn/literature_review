@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import feedparser
 from bs4 import BeautifulSoup
-from call_llm import call_llm
+from tools.call_llm import call_llm
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,17 @@ def generate_research_breakdown(query: str, clusters: Optional[list] = None) -> 
     
     CRITICAL INSTRUCTION: DO NOT use generic academic boilerplate. 
     Tailor every single bullet point specifically to the domain of the topic. 
+
+    Return the response EXCLUSIVELY as a JSON object with this exact schema:
+    {{
+        "title": "A concise, academic title based on the query",
+        "sections": [
+            {{
+                "heading": "Section Name",
+                "content": "• Specific point 1\\n• Specific point 2\\n• Specific point 3"
+            }}
+        ]
+    }}
     """
 
     try:
