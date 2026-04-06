@@ -184,8 +184,6 @@ def run_fetch(req: FetchRequest):
         ss_failed       = state.get("ss_failed", False),
         breakdown       = generate_research_breakdown(req.query),
     )
-    )
-
 
 @app.post("/api/fetch_from_paper", response_model=FetchResponse)
 def run_fetch_from_paper(req: PaperFetchRequest):
