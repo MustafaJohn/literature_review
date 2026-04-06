@@ -180,6 +180,22 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
 .sort-btn:hover{border-color:var(--gold);color:var(--gold)}
 .sort-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(212,168,83,0.08)}
 
+/* ── RESEARCH BREAKDOWN ── */
+.breakdown-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-left:3px solid var(--blue);border-radius:8px;
+  padding:16px 20px;margin-bottom:10px;
+}
+.breakdown-heading{
+  font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:10px;
+}
+.breakdown-content{
+  font-size:13px;color:var(--muted);line-height:1.8;
+  white-space:pre-line;
+}
+
 /* ── CLUSTERS ── */
 .cluster-card{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:8px;padding:18px 20px;margin-bottom:12px}
 .cluster-theme{font-family:'Playfair Display',serif;font-size:17px;color:#fff;margin-bottom:8px}
@@ -375,6 +391,16 @@ input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;b
         structure your literature review. When ready, generate the draft.
       </p>
       <div id="s3-clusters"></div>
+
+      <!-- RESEARCH STRUCTURE BREAKDOWN -->
+      <div id="s3-breakdown" style="display:none;margin-top:32px">
+        <div class="sec" style="margin-bottom:16px">Research Structure Guidance</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+          A suggested structure for approaching your research on this topic.
+        </p>
+        <div id="s3-breakdown-sections"></div>
+      </div>
+
       <div class="act-row">
         <button class="btn-primary" onclick="goStage4()">Generate Draft →</button>
         <button class="btn-ghost" onclick="jumpTo(2)">← Back</button>
@@ -424,8 +450,9 @@ const S = {
   citationStyle: 'APA',
   maxResults:    14,
   sortBy:        'relevance',
-  inputMode:     'topic',     // "topic" | "paper"
-  seedPaper:     null,        // set when paper-seeded mode resolves a seed
+  inputMode:     'topic',
+  seedPaper:     null,
+  breakdown:     null,     // research structure breakdown from /api/fetch
   papers:        [],
   selected:      new Set(),
   clusters:      [],
@@ -603,9 +630,10 @@ async function runFetchFromPaper() {
     const result = await res.json();
 
     S.query    = result.query;   // seed paper title used as query downstream
-    S.papers   = result.sources || [];
-    S.clusters = [];
-    S.selected = new Set(S.papers.map((_, i) => i));
+    S.papers    = result.sources || [];
+    S.clusters  = [];
+    S.breakdown = result.breakdown || null;
+    S.selected  = new Set(S.papers.map((_, i) => i));
 
     unlock(2);
     jumpTo(2);
@@ -766,6 +794,7 @@ async function goStage3() {
     const result = await callCluster(S.query, selectedPapers);
     S.clusters = result.clusters || [];
     renderClusters();
+    renderBreakdown();
     document.getElementById('s3-results').style.display = 'block';
   } catch(e) {
     setLoader('s3', false);
@@ -773,6 +802,26 @@ async function goStage3() {
   } finally {
     setLoader('s3', false);
   }
+}
+
+function renderBreakdown() {
+  const wrapper  = document.getElementById('s3-breakdown');
+  const container = document.getElementById('s3-breakdown-sections');
+  if (!S.breakdown || !S.breakdown.sections) {
+    wrapper.style.display = 'none';
+    return;
+  }
+  container.innerHTML = '';
+  S.breakdown.sections.forEach(sec => {
+    const card = document.createElement('div');
+    card.className = 'breakdown-card';
+    card.innerHTML = `
+      <div class="breakdown-heading">${sec.heading}</div>
+      <div class="breakdown-content">${sec.content}</div>
+    `;
+    container.appendChild(card);
+  });
+  wrapper.style.display = 'block';
 }
 
 function renderClusters() {
@@ -901,7 +950,8 @@ function startOver() {
   S.query = ''; S.papers = []; S.selected = new Set();
   S.clusters = []; S.narrative = ''; S.citationList = '';
   S.unlocked = [1]; S.current = 1; S.maxResults = 14;
-  S.sortBy = 'relevance'; S.inputMode = 'topic'; S.seedPaper = null;
+  S.sortBy = 'relevance'; S.inputMode = 'topic';
+  S.seedPaper = null; S.breakdown = null;
   document.getElementById('s1-input').value = '';
   document.getElementById('s1-paper-input').value = '';
   setInputMode('topic');
