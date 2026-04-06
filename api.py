@@ -200,7 +200,7 @@ def run_fetch_from_paper(req: PaperFetchRequest):
     t0 = time.time()
 
     try:
-        result = fetch_from_paper(req.url_or_doi, max_results=req.max_results)
+        result = fetch_from_paper(req.url_or_doi, max_results=req.max_results, generate_breakdown=True)
     except Exception as exc:
         logger.exception("Paper-seed fetch failed: %s", req.url_or_doi)
         raise HTTPException(status_code=500, detail=str(exc))
