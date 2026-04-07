@@ -1,25 +1,9 @@
-"""
-api.py — FastAPI wrapper for the Literature Review agent.
-
-Endpoints:
-  POST /api/fetch      — fetch papers only (~15s)
-  POST /api/cluster    — cluster selected papers (~8s, flash model)
-  POST /api/summarize  — generate narrative from selected papers + clusters (~25s)
-  GET  /api/health     — health check
-  GET  /               — serves frontend/index.html
-
-Run locally:
-  uvicorn api:app --reload --port 8001
-
-Deploy (Render/Railway):
-  Set GEMINI_API_KEY, start command: uvicorn api:app --host 0.0.0.0 --port $PORT
-"""
-
 import os
 import time
 import logging
+import asyncio
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 try:
     from dotenv import load_dotenv
@@ -36,7 +20,8 @@ from pydantic import BaseModel, Field
 from agents.researcher import research_agent
 from agents.analyst import analyst_agent
 from agents.summarizer import summarizer_agent
-from tools.fetch_web import fetch_from_paper, generate_research_breakdown
+# NEW: Import the unified LLM query analyzer
+from tools.fetch_web import fetch_from_paper, analyze_research_query
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -90,11 +75,11 @@ class FetchResponse(BaseModel):
     sources:         list[SourceItem]
     elapsed_seconds: float
     ss_failed:       bool
-    breakdown:       BreakdownItem
+    breakdown:       Optional[BreakdownItem] = None
 
 class ClusterRequest(BaseModel):
     query:   str
-    papers:  list[dict[str, Any]]   # selected full paper dicts from frontend
+    papers:  list[dict[str, Any]]
 
 class ClusterItem(BaseModel):
     theme:          str
@@ -110,7 +95,7 @@ class SummarizeRequest(BaseModel):
     query:          str
     citation_style: str = Field(default="APA", pattern="^(APA|IEEE)$")
     papers:         list[dict[str, Any]]
-    clusters:       list[dict[str, Any]]
+    clusters:       list[dict[str, Any]] = [] # Made optional for parallel flexibility
 
 class SummarizeResponse(BaseModel):
     narrative:       str
@@ -134,11 +119,11 @@ def serve_frontend():
 
 
 @app.post("/api/fetch", response_model=FetchResponse)
-def run_fetch(req: FetchRequest):
+async def run_fetch(req: FetchRequest):
     """
-    Step 1: fetch papers only. Fast (~15s).
-    Returns all papers — user selects which ones to keep in Stage 2.
-    Clustering happens in /api/cluster after user selection.
+    Step 1: fetch papers. 
+    Now fully asynchronous. Runs the paper fetching and the LLM breakdown generation
+    in parallel so the breakdown adds absolutely zero latency to the overall request.
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
@@ -167,7 +152,14 @@ def run_fetch(req: FetchRequest):
     }
 
     try:
-        state = research_agent(state)
+        # PARALLEL EXECUTION: Run the heavy research agent AND the LLM breakdown concurrently
+        # asyncio.to_thread prevents these synchronous functions from blocking the FastAPI server loop
+        fetch_task = asyncio.to_thread(research_agent, state)
+        breakdown_task = asyncio.to_thread(analyze_research_query, req.query, False, True)
+
+        # Wait for both to finish. Total time = time of whichever is slowest (always fetch_task)
+        state, (_, breakdown_data) = await asyncio.gather(fetch_task, breakdown_task)
+
     except Exception as exc:
         logger.exception("Fetch failed: %s", req.query)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -182,16 +174,15 @@ def run_fetch(req: FetchRequest):
         sources         = state.get("sources", []),
         elapsed_seconds = elapsed,
         ss_failed       = state.get("ss_failed", False),
-        breakdown       = generate_research_breakdown(req.query),
+        breakdown       = breakdown_data,
     )
 
 @app.post("/api/fetch_from_paper", response_model=FetchResponse)
-def run_fetch_from_paper(req: PaperFetchRequest):
+async def run_fetch_from_paper(req: PaperFetchRequest):
     """
-    Paper-seeded fetch. Accepts a URL, DOI URL, or bare DOI.
-    Extracts the DOI, resolves the seed paper via OpenAlex,
-    then fetches its references + related works.
-    Falls back to keyword search if DOI extraction fails.
+    Paper-seeded fetch. 
+    Runs non-blocking. Decomposition and breakdown are handled internally 
+    by fetch_from_paper inside tools/fetch_web.py.
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
@@ -200,12 +191,18 @@ def run_fetch_from_paper(req: PaperFetchRequest):
     t0 = time.time()
 
     try:
-        result = fetch_from_paper(req.url_or_doi, max_results=req.max_results, generate_breakdown=True)
+        # Run in thread so it doesn't block the server
+        result = await asyncio.to_thread(
+            fetch_from_paper, 
+            req.url_or_doi, 
+            max_results=req.max_results, 
+            use_decomposition=True, 
+            generate_breakdown=True
+        )
     except Exception as exc:
         logger.exception("Paper-seed fetch failed: %s", req.url_or_doi)
         raise HTTPException(status_code=500, detail=str(exc))
 
-    # Build slim sources list for frontend (same shape as /api/fetch)
     seed   = result.get("seed_paper")
     papers = result.get("papers", [])
 
@@ -219,7 +216,6 @@ def run_fetch_from_paper(req: PaperFetchRequest):
             "is_open_access": p.get("is_open_access", False),
             "source":         p.get("source", "openalex"),
             "doi":            p.get("doi"),
-            # Keep abstract for summarizer — frontend sends these back
             "abstract":       p.get("abstract", ""),
             "text":           p.get("text", ""),
         }
@@ -227,9 +223,6 @@ def run_fetch_from_paper(req: PaperFetchRequest):
     ]
 
     elapsed = round(time.time() - t0, 2)
-    logger.info("Paper-seed done in %.2fs | %d papers | seed: %s",
-                elapsed, len(papers), seed["title"] if seed else "none")
-
     seed_title = seed["title"] if seed else req.url_or_doi
 
     return FetchResponse(
@@ -238,17 +231,14 @@ def run_fetch_from_paper(req: PaperFetchRequest):
         sources         = sources,
         elapsed_seconds = elapsed,
         ss_failed       = False,
-        breakdown       = generate_research_breakdown(seed_title),
+        breakdown       = result.get("breakdown"), # Comes directly from fetch_from_paper
     )
 
-
-
 @app.post("/api/cluster", response_model=ClusterResponse)
-def run_cluster(req: ClusterRequest):
+async def run_cluster(req: ClusterRequest):
     """
     Step 2: cluster the user-selected papers into themes.
-    Receives only the papers the user kept after Stage 2 selection.
-    Uses gemini-2.5-flash for speed (~8s).
+    Now fully async to prevent blocking other users.
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
@@ -268,25 +258,24 @@ def run_cluster(req: ClusterRequest):
     }
 
     try:
-        state = analyst_agent(state)
+        # Prevents LLM wait-time from freezing the API
+        state = await asyncio.to_thread(analyst_agent, state)
     except Exception as exc:
         logger.exception("Clustering failed: %s", req.query)
         raise HTTPException(status_code=500, detail=str(exc))
 
     elapsed = round(time.time() - t0, 2)
-    logger.info("Cluster done in %.2fs | %d clusters", elapsed, len(state.get("clusters", [])))
-
     return ClusterResponse(
         clusters        = state.get("clusters", []),
         elapsed_seconds = elapsed,
     )
 
-
 @app.post("/api/summarize", response_model=SummarizeResponse)
-def run_summarize(req: SummarizeRequest):
+async def run_summarize(req: SummarizeRequest):
     """
-    Step 3: generate narrative + citations from selected papers and clusters.
-    Receives full paper dicts and clusters from the frontend.
+    Step 3: generate narrative + citations.
+    Now fully async. If you trigger /api/cluster and /api/summarize at the same time
+    from the frontend, FastAPI will now execute them completely in parallel.
     """
     if not os.environ.get("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured.")
@@ -309,14 +298,13 @@ def run_summarize(req: SummarizeRequest):
     }
 
     try:
-        state = summarizer_agent(state)
+         # Prevents LLM wait-time from freezing the API
+        state = await asyncio.to_thread(summarizer_agent, state)
     except Exception as exc:
         logger.exception("Summarize failed: %s", req.query)
         raise HTTPException(status_code=500, detail=str(exc))
 
     elapsed = round(time.time() - t0, 2)
-    logger.info("Summarize done in %.2fs", elapsed)
-
     return SummarizeResponse(
         narrative       = state.get("final_context", ""),
         citation_list   = state.get("citation_list", ""),
