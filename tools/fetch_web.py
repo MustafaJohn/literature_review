@@ -21,7 +21,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 import feedparser
 from bs4 import BeautifulSoup
-from tools.call_llm import call_llm
 
 logger = logging.getLogger(__name__)
 
@@ -53,50 +52,8 @@ _STOP_WORDS = {
 # ═══════════════════════════════════════════════════════════════
 # NEW: RESEARCH QUESTION BREAKDOWN GENERATOR
 # ═══════════════════════════════════════════════════════════════
+
 def generate_research_breakdown(query: str, clusters: Optional[list] = None) -> dict:
-    """
-    Generate a highly specific, domain-aware structured breakdown of how to approach 
-    the research question using an LLM.
-    """
-    
-    # Extract themes to give the LLM context of what was actually found in the papers
-    themes_context = ""
-    if clusters:
-        themes = [c.get("theme", "") for c in clusters if c.get("theme")]
-        themes_context = "Based on the literature, the main thematic clusters are:\n" + "\n".join([f"- {t}" for t in themes[:4]])
-
-    prompt = f"""
-    You are an expert academic research advisor. A student is writing a literature review and research proposal on the following topic:
-    {query}
-    
-    {themes_context}
-    
-    Your task is to outline a 4-6 part research structure (Introduction, Literature Review, Methodology, and so on).
-    
-    CRITICAL INSTRUCTION: DO NOT use generic academic boilerplate. 
-    Tailor every single bullet point specifically to the domain of the topic. 
-    Return the response EXCLUSIVELY as a JSON object with this exact schema:
-    {{
-        "title": "A concise, academic title based on the query",
-        "sections": [
-            {{
-                "heading": "Section Name",
-                "content": "• Specific point 1\\n• Specific point 2\\n• Specific point 3"
-            }}
-        ]
-    }}
-    """
-
-    try:
-        result = call_llm(prompt)
-        return result
-        
-    except Exception as e:
-        print(f"LLM breakdown generation failed: {e}")
-        # Fallback to your original generic logic if the API fails
-        return _fallback_generic_breakdown(query, clusters)
-
-def _fallback_generic_breakdown(query: str, clusters: Optional[list] = None) -> dict:
     """
     Generate a structured breakdown of how to approach the research question.
     
