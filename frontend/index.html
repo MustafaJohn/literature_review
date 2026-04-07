@@ -526,6 +526,7 @@ const S = {
   inputMode: 'topic', seedPaper: null, breakdown: null,
   papers: [], selected: new Set(), clusters: [], narrative: '', citationList: '',
   unlocked: [1], current: 1,
+  ummarizePromise: null, 
 };
 
 // ── UI HELPERS ──────────────────────────────────────────────
@@ -813,14 +814,22 @@ function updatePaperHint() {
 // ── RENDER STAGE 3 ─────────────────────────────────────────
 async function goStage3() {
   unlock(3); jumpTo(3); 
-  setLoader('s3', true, "Extracting themes..."); 
+  setLoader('s3', true, "Analyzing semantic relationships..."); 
   document.getElementById('s3-results').style.display = 'none';
   showErr('s3', '');
 
   const selectedPapers = [...S.selected].map(i => S.papers[i]).filter(Boolean);
 
+  // KICK OFF BOTH TASKS IN PARALLEL
+  // 1. Start the cluster task
+  const clusterPromise = callCluster(S.query, selectedPapers);
+  
+  // 2. Start the summarize task secretly in the background! 
+  // (We pass empty clusters so it doesn't wait for the cluster API to finish)
+  S.summarizePromise = callSummarize(S.query, S.citationStyle, selectedPapers, []);
+
   try {
-    const result = await callCluster(S.query, selectedPapers);
+    const result = await clusterPromise; // We only wait for clusters to render Stage 3
     S.clusters = result.clusters || [];
     renderClusters();
     renderBreakdown();
@@ -831,7 +840,7 @@ async function goStage3() {
     setLoader('s3', false);
   }
 }
-
+  
 function renderClusters() {
   const container = document.getElementById('s3-clusters');
   container.innerHTML = '';
@@ -890,14 +899,15 @@ function renderBreakdown() {
 // ── RENDER STAGE 4 ─────────────────────────────────────────
 async function goStage4() {
   unlock(4); jumpTo(4); 
-  setLoader('s4', true, "Writing narrative draft..."); 
+  setLoader('s4', true, "Finalizing narrative draft..."); 
   document.getElementById('s4-results').style.display = 'none';
   showErr('s4', '');
 
-  const selectedPapers = [...S.selected].map(i => S.papers[i]).filter(Boolean);
-
   try {
-    const result = await callSummarize(S.query, S.citationStyle, selectedPapers, S.clusters);
+    // INSTEAD of making a new API call, we await the promise we already started in Stage 3!
+    // If it's already done, this takes 0 seconds. If it's still running, it just waits for the remainder.
+    const result = await S.summarizePromise; 
+    
     S.narrative = result.narrative || 'No narrative generated.';
     S.citationList = result.citation_list || 'No citations available.';
     
@@ -911,7 +921,6 @@ async function goStage4() {
     setLoader('s4', false);
   }
 }
-
 function switchTab(name) {
   document.querySelectorAll('.e-tab').forEach((b, i) => b.classList.toggle('active', ['narrative','citations'][i] === name));
   document.querySelectorAll('.e-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
