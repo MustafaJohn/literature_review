@@ -53,79 +53,108 @@ _STOP_WORDS = {
 # NEW: RESEARCH QUESTION BREAKDOWN GENERATOR
 # ═══════════════════════════════════════════════════════════════
 
-def generate_research_breakdown(query: str, clusters: Optional[list] = None) -> dict:
-    """
-    Generate a structured breakdown of how to approach the research question.
-    
-    Provides guidance on:
-    - Introduction: Background, problem statement, research objectives
-    - Literature Review: Theoretical foundations, key themes, critical analysis
-    - Methodology: Research design, data collection, analysis techniques
-    - Expected Contributions: Theoretical/practical implications
-    
-    This helps users understand how to structure their actual research paper/proposal.
-    
-    Args:
-        query: The research question/topic
-        clusters: Optional list of thematic clusters from clustering step
-        
-    Returns:
-        dict with structure: {
-            "title": str,
-            "sections": [{"heading": str, "content": str}, ...]
-        }
-    """
-    # Extract key themes from clusters if available
-    themes = []
-    if clusters:
-        themes = [c.get("theme", "") for c in clusters if c.get("theme")]
-        themes = themes[:4]  # Top 4 themes
-    
-    # Parse main concepts from query
-    query_terms = _parse_query_terms(query)
-    main_concepts = sorted(query_terms, key=len, reverse=True)[:3]
-    main_concepts_str = ", ".join(main_concepts) if main_concepts else query
-    
-    sections = [
-        {
-            "heading": "Introduction",
-            "content": f"""• Background and context of {query}
-• Problem statement: What gap exists in current understanding of {main_concepts_str}?
-• Research objectives: What specifically will this research investigate?
-• Research questions: Clear, answerable questions driving the investigation
-• Significance: Why does this research matter to the field?"""
-        },
-        {
-            "heading": "Literature Review",
-            "content": f"""• Theoretical foundations relevant to {query}
-{f"• Key themes identified: {', '.join(themes)}" if themes else f"• Current state of research in {main_concepts_str}"}
-• Critical analysis: Strengths and limitations of existing approaches
-• Synthesis: How different perspectives relate to each other
-• Research gap identification: What remains unexplored?"""
-        },
-        {
-            "heading": "Methodology",
-            "content": f"""• Research design: Quantitative, qualitative, or mixed methods approach
-• Data collection: Sources, sampling, instruments for studying {main_concepts_str}
-• Analysis techniques: Methods appropriate for your research questions
-• Validation: How will you ensure reliability and validity?
-• Ethical considerations: Particularly relevant for {query}"""
-        },
-        {
-            "heading": "Expected Contributions",
-            "content": f"""• Theoretical contributions: New insights into {main_concepts_str}
-• Practical implications: How findings can be applied in real-world contexts
-• Methodological advances: Novel approaches or techniques
-• Future research directions: Questions opened by this investigation
-• Impact on the field: How this advances understanding of {query}"""
-        },
-    ]
-    
+def _fallback_generic_breakdown(query: str) -> dict:
+    """Fallback if the LLM JSON parsing fails to ensure the UI never breaks."""
     return {
-        "title": query,
-        "sections": sections,
+        "title": query.title(),
+        "sections": [
+            {
+                "heading": "1. Introduction",
+                "content": f"• Establish background and context of {query}\n• Define the core problem statement\n• Outline specific research objectives"
+            },
+            {
+                "heading": "2. Literature Review",
+                "content": "• Review theoretical foundations\n• Identify recurring themes in the literature\n• Highlight current research gaps"
+            },
+            {
+                "heading": "3. Methodology",
+                "content": "• Define research design (e.g., quantitative, qualitative)\n• Detail data collection methods\n• Outline analytical techniques"
+            },
+            {
+                "heading": "4. Expected Contributions",
+                "content": "• Theoretical implications\n• Practical applications\n• Directions for future research"
+            }
+        ]
     }
 
+def analyze_research_query(query: str, do_decompose: bool, do_breakdown: bool) -> tuple[list[str], Optional[dict]]:
+    """
+    Uses a SINGLE call to Gemini Flash to both:
+    1. Decompose the query into sub-topics (if requested)
+    2. Generate a highly specific, domain-aware research breakdown (if requested)
+    """
+    # Fast path: If neither is needed, return immediately
+    if not do_decompose and not do_breakdown:
+        return [query], None
+
+    try:
+        from tools.call_llm import call_llm
+        
+        prompt = f"""You are an expert academic librarian and research advisor. 
+Analyze the following research query: {query}
+
+Perform the following tasks:
+1. Search Decomposition: Break the query down into 2-4 focused, searchable sub-topics (3-8 words each) that cover different aspects of the query. 
+2. Research Structure Breakdown: Outline a 4-part research paper structure (Introduction, Literature Review, Methodology, Expected Contributions). 
+   CRITICAL: DO NOT use generic academic boilerplate. Tailor every single bullet point specifically to the domain of the topic (e.g., if Computer Science, mention specific datasets/metrics; if Medicine, mention trial types/biomarkers).
+
+Return your response EXCLUSIVELY as a valid JSON object matching this schema. Do not wrap it in markdown code blocks:
+{{
+    "sub_topics": ["sub-topic 1", "sub-topic 2"],
+    "breakdown": {{
+        "title": "A concise, academic title based on the query",
+        "sections": [
+            {{
+                "heading": "1. Introduction",
+                "content": "• Specific point 1\\n• Specific point 2"
+            }},
+            {{
+                "heading": "2. Literature Review",
+                "content": "• Specific point 1\\n• Specific point 2"
+            }},
+            {{
+                "heading": "3. Methodology",
+                "content": "• Specific point 1\\n• Specific point 2"
+            }},
+            {{
+                "heading": "4. Expected Contributions",
+                "content": "• Specific point 1\\n• Specific point 2"
+            }}
+        ]
+    }}
+}}
+"""
+        
+        # Gemini Flash is fast enough that doing both tasks takes ~1-1.5 seconds
+        response = call_llm(prompt, model="gemini-2.5-flash")
+        
+        # Clean potential markdown formatting
+        cleaned_response = response.strip()
+        if cleaned_response.startswith("```json"):
+            cleaned_response = cleaned_response[7:]
+        if cleaned_response.endswith("```"):
+            cleaned_response = cleaned_response[:-3]
+            
+        parsed_data = json.loads(cleaned_response.strip())
+        
+        # 1. Handle Sub-topics
+        sub_topics = [query]
+        if do_decompose and "sub_topics" in parsed_data:
+            for t in parsed_data["sub_topics"]:
+                # Ignore exact matches to original query
+                if t.lower().strip() != query.lower().strip():
+                    sub_topics.append(t)
+                    
+        # 2. Handle Breakdown
+        breakdown = parsed_data.get("breakdown") if do_breakdown else None
+        
+        logger.info("[analyze_query] Successfully extracted %d sub-topics and breakdown", len(sub_topics))
+        return sub_topics[:5], breakdown
+        
+    except Exception as e:
+        logger.warning("[analyze_query] LLM Analysis failed (%s). Falling back to generic defaults.", e)
+        # Safe Fallback
+        return [query], _fallback_generic_breakdown(query) if do_breakdown else None
 
 # ═══════════════════════════════════════════════════════════════
 # QUERY DECOMPOSITION USING GEMINI
@@ -154,81 +183,6 @@ def _should_decompose_query(query: str) -> bool:
     marker_count = sum(1 for marker in complexity_markers if marker in query_lower)
     
     return marker_count >= 2 or len(words) > 10
-
-
-def decompose_query(query: str) -> list[str]:
-    """
-    Use Gemini Flash to decompose a complex research query into focused sub-topics.
-    
-    Returns:
-        List of 2-4 focused sub-topics that together cover the original query.
-        Always includes the original query as the first item.
-    """
-    if not _should_decompose_query(query):
-        logger.info("[decompose] Query is simple, no decomposition needed")
-        return [query]
-    
-    try:
-        from tools.call_llm import call_llm
-        
-        prompt = f"""You are a research librarian helping to improve academic paper search quality.
-
-Given this research query, break it down into 2-4 focused sub-topics that would help find relevant papers:
-
-Query: {query}
-
-Requirements:
-- Each sub-topic should be a searchable phrase (3-8 words)
-- Sub-topics should cover different aspects of the query
-- Avoid redundancy between sub-topics
-- Focus on core concepts, methods, domains, and applications
-- Do NOT include the original query in your list
-
-Output ONLY a numbered list, nothing else:
-1. [sub-topic]
-2. [sub-topic]
-3. [sub-topic]
-4. [sub-topic]
-
-Example for "Privacy-preserving techniques in federated learning for healthcare":
-1. federated learning privacy techniques
-2. healthcare machine learning applications
-3. differential privacy medical data
-4. secure multi-party computation
-
-Now decompose: {query}
-"""
-        
-        # Use Flash model for speed (1-2s vs 3-4s for Pro)
-        response = call_llm(prompt, model="gemini-2.5-flash")
-        
-        # Parse numbered list
-        sub_topics = [query]  # Always include original query first
-        lines = response.strip().split('\n')
-        
-        for line in lines:
-            line = line.strip()
-            # Match patterns like "1. topic" or "1) topic" or "- topic"
-            match = re.match(r'^[\d\-\*\)\.]+\s*(.+)$', line)
-            if match:
-                topic = match.group(1).strip()
-                # Remove quotes if present
-                topic = topic.strip('"\'')
-                if len(topic) > 5 and topic.lower() != query.lower():
-                    sub_topics.append(topic)
-        
-        # Cap at 5 total (original + 4 decomposed)
-        sub_topics = sub_topics[:5]
-        
-        logger.info("[decompose] Decomposed '%s' into %d sub-topics: %s", 
-                   query, len(sub_topics), sub_topics)
-        
-        return sub_topics
-        
-    except Exception as e:
-        logger.warning("[decompose] Decomposition failed (%s), using original query only", e)
-        return [query]
-
 
 # ═══════════════════════════════════════════════════════════════
 # EXISTING CODE (UNCHANGED FROM YOUR PROVIDED FILE)
@@ -599,10 +553,8 @@ def fetch_papers(query: str, input_type: str = "topic",
     """
     
     # NEW: Query decomposition for complex queries
-    if use_decomposition:
-        sub_topics = decompose_query(query)
-    else:
-        sub_topics = [query]
+    sub_topics, breakdown_data = analyze_research_query(query, use_decomposition, generate_breakdown)
+
     
     logger.info("[fetch] Fetching papers for %d sub-topics: %s", 
                 len(sub_topics), sub_topics)
@@ -671,11 +623,10 @@ def fetch_papers(query: str, input_type: str = "topic",
     }
     
     # NEW: Generate research breakdown if requested
-    if generate_breakdown:
-        result["breakdown"] = generate_research_breakdown(query, clusters=None)
-    
+    if generate_breakdown and breakdown_data:
+        result["breakdown"] = breakdown_data
+        
     return result
-
 
 # ═══════════════════════════════════════════════════════════════
 # PAPER-SEEDED FETCH (DOI/URL) - WITH AUTO-DECOMPOSITION
@@ -943,14 +894,8 @@ def fetch_from_paper(url_or_doi: str, max_results: int = 14,
     seed_title = seed_paper["title"]
     
     # If decomposition enabled, decompose the title for better coverage
-    if use_decomposition:
-        sub_topics = decompose_query(seed_title)
-        logger.info("[paper-seed] Decomposed title into %d sub-topics for search", len(sub_topics))
-    else:
-        # Fallback: extract top terms from title
-        title_terms = _parse_query_terms(seed_title)
-        kw_query = " ".join(sorted(title_terms, key=len, reverse=True)[:6])
-        sub_topics = [kw_query]
+    sub_topics, breakdown_data = analyze_research_query(seed_title, use_decomposition, generate_breakdown)
+    logger.info("[paper-seed] Analyzed seed title for sub-topics/breakdown")
     
     related_results  = []
     all_oa_kw_results    = []
@@ -1010,8 +955,8 @@ def fetch_from_paper(url_or_doi: str, max_results: int = 14,
     }
     
     # NEW: Generate research breakdown if requested
-    if generate_breakdown:
-        result["breakdown"] = generate_research_breakdown(seed_title, clusters=None)
+    if generate_breakdown and breakdown_data:
+        result["breakdown"] = breakdown_data
     
     return result
 
