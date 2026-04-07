@@ -1,10 +1,3 @@
-I sincerely apologize for that. You are completely right to call me out. In my eagerness to show you the new UI/UX design, I hardcoded mock `setTimeout` functions to bypass the backend and completely stripped out the actual API calls for the clusters and summarization. That was a bad oversight.
-
-Here is the **complete, fully wired file**. It retains 100% of the new, premium UI/UX design, but I have restored **all the live API calls** (`/api/fetch`, `/api/fetch_from_paper`, `/api/cluster`, and `/api/summarize`). 
-
-I also added back the `renderClusters` and `renderBreakdown` functions, mapped to the new CSS classes, so your backend data actually renders into the new design.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -212,37 +205,40 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
 .tag.open { background: #dcfce7; color: #166534; }
 .tag.cit { background: var(--accent-light); color: var(--accent-hover); }
 
+/* ── SEARCH AGAIN PANEL ── */
+.search-again-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--bg-subtle); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 24px; }
+.search-again-label { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
+.paper-count-badge { font-size: 0.75rem; font-weight: 600; padding: 4px 10px; border-radius: 100px; background: var(--accent-light); color: var(--accent-hover); }
+.search-again-btn { margin-left: auto; font-size: 0.875rem; font-weight: 500; padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: var(--text-main); cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow-sm); }
+.search-again-btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: var(--shadow-md); }
+.search-again-panel { background: var(--bg); border: 1px solid var(--accent); border-radius: var(--radius-xl); padding: 24px; margin-bottom: 32px; box-shadow: var(--shadow-md); animation: slideUp 0.2s ease; }
+.search-again-panel .panel-title { font-size: 0.875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+.search-again-panel .panel-title::after { content: ''; flex: 1; height: 1px; background: var(--accent-light); }
+.re-input-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 4px; display: flex; margin-bottom: 16px; transition: var(--transition); box-shadow: var(--shadow-sm); }
+.re-input-card:focus-within { border-color: var(--accent); box-shadow: var(--shadow-focus); }
+.re-input-card input { flex: 1; background: transparent; border: none; outline: none; color: var(--text-main); font-family: inherit; font-size: 1rem; padding: 12px 16px; }
+.search-again-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.sort-btn { font-size: 0.875rem; font-weight: 500; padding: 8px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+.sort-btn:hover { border-color: var(--border-hover); color: var(--text-main); }
+.sort-btn.active { border-color: var(--accent); color: var(--accent-hover); background: var(--accent-light); }
+
 /* ── CLUSTERS & BREAKDOWN ── */
 .cluster-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
-.cluster-card {
-  background: var(--bg); border: 1px solid var(--border); border-left: 4px solid var(--accent);
-  border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm);
-}
+.cluster-card { background: var(--bg); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-sm); }
 .c-theme { font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; color: var(--text-main); }
 .c-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; white-space: pre-line;}
 .c-papers { display: flex; flex-wrap: wrap; gap: 8px; }
 .c-tag { font-size: 0.8rem; background: var(--bg-inset); border: 1px solid var(--border); padding: 4px 10px; border-radius: 100px; color: var(--text-muted); }
 .c-conflict { margin-top: 16px; padding-top: 12px; border-top: 1px dashed var(--border); font-size: 0.875rem; color: var(--error); display: flex; gap: 8px; align-items: flex-start; font-style: italic; }
 
-.breakdown-card {
-  background: var(--bg); border: 1px solid var(--border); border-left: 4px solid var(--info);
-  border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-sm);
-}
+.breakdown-card { background: var(--bg); border: 1px solid var(--border); border-left: 4px solid var(--info); border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-sm); }
 .b-heading { font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; color: var(--info); }
 .b-content { font-size: 0.95rem; color: var(--text-muted); line-height: 1.6; white-space: pre-line;}
 
 /* ── OUTPUT (Notion-like Editor) ── */
-.editor-wrapper {
-  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xl);
-  overflow: hidden; box-shadow: var(--shadow-md);
-}
-.editor-tabs {
-  display: flex; background: var(--bg-subtle); border-bottom: 1px solid var(--border); padding: 0 16px;
-}
-.e-tab {
-  padding: 16px 24px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); border: none;
-  background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: var(--transition);
-}
+.editor-wrapper { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md); }
+.editor-tabs { display: flex; background: var(--bg-subtle); border-bottom: 1px solid var(--border); padding: 0 16px; }
+.e-tab { padding: 16px 24px; font-size: 0.875rem; font-weight: 500; color: var(--text-muted); border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: var(--transition); }
 .e-tab.active { color: var(--text-main); border-bottom-color: var(--text-main); }
 .e-pane { display: none; padding: 40px; }
 .e-pane.active { display: block; animation: slideUp 0.3s ease; }
@@ -250,10 +246,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
 .cite-content { font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; line-height: 1.7; color: var(--text-muted); white-space: pre-wrap; }
 
 /* ── ACTIONS & UTILS ── */
-.btn-ghost {
-  background: transparent; border: 1px solid var(--border); padding: 12px 20px; border-radius: var(--radius-md);
-  font-size: 0.95rem; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: var(--transition);
-}
+.btn-ghost { background: transparent; border: 1px solid var(--border); padding: 12px 20px; border-radius: var(--radius-md); font-size: 0.95rem; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: var(--transition); }
 .btn-ghost:hover { background: var(--bg-subtle); color: var(--text-main); }
 .action-row { display: flex; align-items: center; justify-content: space-between; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
 
@@ -264,21 +257,46 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
 @keyframes spin { to { transform: rotate(360deg); } }
 .loader-text { font-size: 0.95rem; font-weight: 500; color: var(--text-muted); }
 
-/* Errors */
+/* Errors & Status */
 .alert { background: var(--error-bg); border: 1px solid rgba(225,29,72,0.2); color: var(--error); padding: 16px; border-radius: var(--radius-md); margin-bottom: 24px; font-size: 0.9rem; display: none; align-items: center; justify-content: space-between; }
+.api-status { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; margin-bottom: 16px; }
 
 /* Sticky Export Bar */
-.export-bar {
-  display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%);
-  background: var(--bg); border: 1px solid var(--border); border-radius: 100px; padding: 8px 8px 8px 24px;
-  align-items: center; gap: 12px; z-index: 100; box-shadow: var(--shadow-lg);
-}
+.export-bar { display: none; position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--bg); border: 1px solid var(--border); border-radius: 100px; padding: 8px 8px 8px 24px; align-items: center; gap: 8px; z-index: 100; box-shadow: var(--shadow-lg); white-space: nowrap; }
 .export-bar.show { display: flex; animation: slideUp 0.3s ease; }
-.exp-btn {
-  background: var(--bg-inset); border: none; padding: 8px 16px; border-radius: 100px; font-size: 0.85rem; font-weight: 500;
-  cursor: pointer; transition: var(--transition); color: var(--text-main); display: flex; gap: 6px; align-items: center;
-}
+.exp-btn { background: var(--bg-inset); border: none; padding: 8px 16px; border-radius: 100px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: var(--transition); color: var(--text-main); display: flex; gap: 6px; align-items: center; }
 .exp-btn:hover { background: var(--border); }
+
+/* ── PDF PRINT STYLES (Zero-dependency Export) ── */
+@media print {
+  body { background: #fff !important; color: #000 !important; background-image: none !important; }
+  .wrap { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+  
+  /* Hide all UI elements */
+  .hdr-badge, .subtitle, .stepper, .export-bar, .action-row, .editor-tabs, 
+  .segmented-control, .search-wrapper, .config-card, .info-callout, button,
+  .search-again-bar, .search-again-panel { display: none !important; }
+  
+  /* Only print the active panel */
+  .panel { display: none !important; }
+  .panel.active { display: block !important; }
+  
+  /* Strip styling for academic look */
+  .cluster-card, .breakdown-card, .editor-wrapper, .paper-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 32px !important; }
+  
+  /* Stage 4 formatting */
+  #stage-4.active .e-pane { display: block !important; padding: 0 !important; }
+  #tab-narrative::before { content: "Literature Review Draft"; font-family: 'Playfair Display', serif; font-size: 24pt; font-weight: 600; display: block; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+  #tab-citations::before { content: "Bibliography"; font-family: 'Playfair Display', serif; font-size: 24pt; font-weight: 600; display: block; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+  #tab-citations { page-break-before: always; }
+  
+  .draft-content, .cite-content { font-size: 12pt !important; color: #000 !important; max-width: 100% !important; }
+  .c-theme, .b-heading, h1, h2 { color: #000 !important; page-break-after: avoid; }
+  .c-papers { display: block; }
+  .c-tag { border: none !important; padding: 0 !important; font-style: italic; }
+  .c-tag::after { content: ", "; }
+  .c-tag:last-child::after { content: ""; }
+}
 
 @media (max-width: 768px) {
   .papers-grid { grid-template-columns: 1fr; }
@@ -287,6 +305,7 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
   .action-row { flex-direction: column-reverse; gap: 16px; }
   .action-row button { width: 100%; justify-content: center; }
   .e-pane { padding: 24px 16px; }
+  .export-bar { width: 90%; justify-content: center; overflow-x: auto; padding: 12px; }
 }
 </style>
 </head>
@@ -299,7 +318,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
     <p class="subtitle">Enter a research topic or paste a paper title. The agent fetches real peer-reviewed papers, synthesizes them by theme, and drafts a comprehensive review.</p>
   </div>
 
-  <!-- Progress Bar / Stepper -->
   <div class="stepper">
     <div class="step active" id="node-1" onclick="jumpTo(1)"><div class="step-num">1</div><span class="step-label">Input Context</span></div>
     <div class="step locked" id="node-2" onclick="jumpTo(2)"><div class="step-num">2</div><span class="step-label">Curate Sources</span></div>
@@ -319,7 +337,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
       <button class="seg-btn" id="mode-paper-btn" onclick="setInputMode('paper')">🔗 Start from a Paper URL</button>
     </div>
 
-    <!-- TOPIC MODE -->
     <div id="s1-topic-zone">
       <div class="search-wrapper">
         <input id="s1-input" class="search-input" type="text" placeholder="e.g. Impact of Transformer attention mechanisms in NLP..." onkeydown="if(event.key==='Enter') runFetch()"/>
@@ -331,7 +348,6 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
       </div>
     </div>
 
-    <!-- PAPER MODE -->
     <div id="s1-paper-zone" style="display:none">
       <div class="search-wrapper">
         <input id="s1-paper-input" class="search-input" type="text" placeholder="Paste a DOI or academic URL (e.g. https://doi.org/10...)" onkeydown="if(event.key==='Enter') runFetchFromPaper()"/>
@@ -367,31 +383,64 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
     </div>
 
     <div class="alert" id="s1-err"><span id="s1-err-msg"></span><button class="btn-ghost" style="padding:6px 12px;font-size:12px" onclick="retryStage(1)">Retry</button></div>
-    
-    <div class="loader-ui" id="s1-loader">
-      <div class="spinner"></div>
-      <div class="loader-text" id="s1-msg">Querying academic databases...</div>
-    </div>
+    <div class="loader-ui" id="s1-loader"><div class="spinner"></div><div class="loader-text" id="s1-msg">Querying databases...</div></div>
   </div>
 
   <!-- ══════════ STAGE 2 — PAPERS ══════════ -->
   <div class="panel" id="stage-2">
     <div class="stage-header">
       <h2 class="stage-title">Curate your sources</h2>
-      <p class="stage-desc">We found these relevant papers. Review them and deselect any that don't fit your narrative. The AI will only read the ones you select.</p>
+      <p class="stage-desc">Review the retrieved papers. Deselect any that do not fit your intended narrative.</p>
     </div>
     
     <div class="alert" id="s2-err"><span id="s2-err-msg"></span><button class="btn-ghost" style="padding:6px 12px;font-size:12px" onclick="retryStage(2)">Retry</button></div>
-    
+    <div class="api-status" id="s2-status"></div>
+
+    <!-- Search Again Tools -->
+    <div class="search-again-bar" id="s2-search-again-bar">
+      <span class="search-again-label">Not what you expected?</span>
+      <span class="paper-count-badge" id="s2-paper-count">0 papers</span>
+      <button class="search-again-btn" onclick="toggleSearchAgain()">↺ Refine Query</button>
+    </div>
+    <div class="search-again-panel" id="s2-search-again-panel" style="display:none">
+      <div class="panel-title">Refine your search</div>
+      <div class="re-input-card">
+        <input id="s2-re-query" type="text" placeholder="Try different keywords or a more specific query…" onkeydown="if(event.key==='Enter') reSearch()" oninput="_updateReSearchBtn()"/>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:0.875rem;color:var(--text-muted);font-weight:500;">Search Depth</span>
+          <span style="font-size:0.875rem;font-weight:600;color:var(--accent);"><strong id="s2-re-depth-val">14</strong> papers</span>
+        </div>
+        <div class="slider-container">
+          <span class="mono" style="color:var(--text-light);font-size:12px;">10</span>
+          <input type="range" id="s2-re-depth-slider" min="10" max="50" step="1" value="14" oninput="document.getElementById('s2-re-depth-val').textContent = this.value; _updateReSearchBtn()"/>
+          <span class="mono" style="color:var(--text-light);font-size:12px;">50</span>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:0.875rem;color:var(--text-muted);font-weight:500;margin-bottom:8px;">Sort By</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="sort-btn active" data-sort="relevance" onclick="setSortBy('relevance')">Most Relevant</button>
+          <button class="sort-btn" data-sort="recent" onclick="setSortBy('recent')">Most Recent</button>
+          <button class="sort-btn" data-sort="cited" onclick="setSortBy('cited')">Most Cited</button>
+        </div>
+      </div>
+      <div class="search-again-actions">
+        <button class="btn-ghost" onclick="toggleSearchAgain()">Cancel</button>
+        <button class="btn-primary" id="s2-re-search-btn" onclick="reSearch()">Search Again →</button>
+      </div>
+    </div>
+
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-      <div id="s2-status" style="font-size:0.875rem; color:var(--text-muted); font-weight:500;"></div>
+      <span style="font-size:0.875rem; color:var(--text-muted); font-weight:500;">Select papers to include in synthesis</span>
       <span id="s2-hint" style="font-size:0.875rem; font-weight:600; color:var(--accent);">0 selected</span>
     </div>
 
     <div class="papers-grid" id="s2-papers"></div>
 
     <div class="action-row">
-      <button class="btn-ghost" onclick="jumpTo(1)">← Refine Search</button>
+      <button class="btn-ghost" onclick="jumpTo(1)">← Back to Search</button>
       <button class="btn-primary" id="s2-next" onclick="goStage3()" disabled>Analyze & Cluster Papers →</button>
     </div>
   </div>
@@ -400,15 +449,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
   <div class="panel" id="stage-3">
     <div class="stage-header">
       <h2 class="stage-title">Thematic Synthesis</h2>
-      <p class="stage-desc">The AI has read the abstracts and metadata of your selected papers, grouping them into narrative themes. This forms the backbone of your literature review.</p>
+      <p class="stage-desc">The AI has analyzed your selected papers and grouped them into thematic clusters. This forms the backbone of your review.</p>
     </div>
 
     <div class="alert" id="s3-err"><span id="s3-err-msg"></span><button class="btn-ghost" style="padding:6px 12px;font-size:12px" onclick="retryStage(3)">Retry</button></div>
-    <div class="loader-ui" id="s3-loader">
-      <div class="spinner"></div>
-      <div class="loader-text">Analyzing semantic relationships...</div>
-    </div>
-
+    <div class="loader-ui" id="s3-loader"><div class="spinner"></div><div class="loader-text">Extracting themes...</div></div>
+    
     <div id="s3-results" style="display:none">
       <div class="cluster-list" id="s3-clusters"></div>
 
@@ -431,15 +477,12 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
   <div class="panel" id="stage-4">
     <div class="stage-header">
       <h2 class="stage-title">Your Literature Review</h2>
-      <p class="stage-desc">A fully synthesized, academically formatted draft based exclusively on the papers and themes you curated.</p>
+      <p class="stage-desc">A fully synthesized, academically formatted draft based exclusively on your curated sources.</p>
     </div>
 
     <div class="alert" id="s4-err"><span id="s4-err-msg"></span><button class="btn-ghost" style="padding:6px 12px;font-size:12px" onclick="retryStage(4)">Retry</button></div>
-    <div class="loader-ui" id="s4-loader">
-      <div class="spinner"></div>
-      <div class="loader-text">Writing narrative draft...</div>
-    </div>
-
+    <div class="loader-ui" id="s4-loader"><div class="spinner"></div><div class="loader-text">Writing narrative draft...</div></div>
+    
     <div id="s4-results" style="display:none">
       <div class="editor-wrapper">
         <div class="editor-tabs">
@@ -460,11 +503,18 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
 
 <!-- Floating Export Bar -->
 <div class="export-bar" id="export-bar">
-  <span style="font-size:0.85rem;font-weight:600;color:var(--text-muted);margin-right:8px;">Export as</span>
-  <button class="exp-btn" onclick="exportDraft('md')">Markdown</button>
-  <button class="exp-btn" onclick="exportDraft('copy')">Copy to Clipboard</button>
+  <span style="font-size:0.85rem;font-weight:600;color:var(--text-muted);margin-right:8px;">Export</span>
+  <button class="exp-btn" onclick="exportDraft('pdf')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> PDF
+  </button>
+  <button class="exp-btn" onclick="exportDraft('md')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg> Markdown
+  </button>
+  <button class="exp-btn" onclick="exportDraft('copy')">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy
+  </button>
   <div style="width:1px;height:24px;background:var(--border);margin:0 4px;"></div>
-  <button class="btn-primary" style="padding:8px 16px; border-radius:100px; font-size:0.85rem;" onclick="startOver()">Start New Search</button>
+  <button class="btn-primary" style="padding:8px 16px; border-radius:100px; font-size:0.85rem;" onclick="startOver()">New Search</button>
 </div>
 
 <script>
@@ -482,7 +532,7 @@ const S = {
 function updateDepth(value) {
   const val = parseInt(value, 10); S.maxResults = val;
   document.getElementById('s1-depth-val').textContent = val;
-  const presets = [10, 14, 25];
+  const presets = [10, 14, 25, 40];
   document.querySelectorAll('.preset-btn').forEach((btn, i) => {
     btn.classList.toggle('active', presets[i] === val);
   });
@@ -500,6 +550,11 @@ function jumpTo(n) {
     const node = document.getElementById('node-' + i);
     node.className = 'step' + (i === n ? ' active' : S.unlocked.includes(i) && i < n ? ' done' : S.unlocked.includes(i) ? ' done' : ' locked');
   }
+  
+  const exportBar = document.getElementById('export-bar');
+  if (n >= 3) { exportBar.classList.add('show'); } 
+  else { exportBar.classList.remove('show'); }
+  
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function unlock(n) { if (!S.unlocked.includes(n)) S.unlocked.push(n); }
@@ -537,7 +592,7 @@ function setInputMode(mode) {
 const RETRY_FN = { 1: () => runFetch(), 2: () => runFetch(), 3: () => goStage3(), 4: () => goStage4() };
 function retryStage(n) { showErr('s' + n, ''); const fn = RETRY_FN[n]; if (fn) fn(); }
 
-// ── API CALLS ─────────────────────────────────────────────────
+// ── API CALLS (EXACTLY AS IN GOLD) ────────────────────────────
 async function callFetch(query, citationStyle, maxResults, sortBy) {
   const res = await fetch(`${API_BASE}/api/fetch`, {
     method: 'POST',
@@ -574,7 +629,7 @@ async function runFetch() {
   showErr('s1', '');
   if (!query) { showErr('s1', 'Please enter a research topic to begin.'); return; }
   
-  S.query = query; S.papers = []; S.selected = new Set(); S.clusters = [];
+  S.query = query; S.sortBy = 'relevance'; S.papers = []; S.selected = new Set(); S.clusters = [];
   document.getElementById('s1-btn').disabled = true;
   setLoader('s1', true, `Searching academic databases for top ${S.maxResults} papers...`);
 
@@ -624,17 +679,106 @@ async function runFetchFromPaper() {
   }
 }
 
+function setSortBy(val) {
+  S.sortBy = val;
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.sort === val);
+  });
+  _updateReSearchBtn();
+}
+
+function _updateReSearchBtn() {
+  const newQuery = document.getElementById('s2-re-query').value.trim();
+  const newDepth = parseInt(document.getElementById('s2-re-depth-slider').value, 10);
+  const newSort  = S.sortBy;
+  const unchanged = newQuery === S.query && newDepth === S.maxResults && newSort === (S._lastSortBy || 'relevance');
+  document.getElementById('s2-re-search-btn').disabled = unchanged;
+}
+
+function toggleSearchAgain() {
+  const panel = document.getElementById('s2-search-again-panel');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    const el = document.getElementById('s2-re-query');
+    el.value = S.query; el.focus(); el.select();
+    document.getElementById('s2-re-depth-slider').value = S.maxResults;
+    document.getElementById('s2-re-depth-val').textContent = S.maxResults;
+    document.querySelectorAll('.sort-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.sort === S.sortBy);
+    });
+    _updateReSearchBtn();
+  }
+}
+
+async function reSearch() {
+  const newQuery = document.getElementById('s2-re-query').value.trim();
+  if (!newQuery) return;
+  const newDepth = parseInt(document.getElementById('s2-re-depth-slider').value, 10);
+  const newSort  = S.sortBy;
+
+  S._lastSortBy = newSort; S.query = newQuery; S.maxResults = newDepth;
+  document.getElementById('s1-input').value = newQuery;
+  document.getElementById('s1-depth-slider').value = newDepth;
+  updateDepth(newDepth);
+
+  document.getElementById('s2-search-again-panel').style.display = 'none';
+  S.papers = []; S.selected = new Set(); S.clusters = [];
+  document.getElementById('s2-papers').innerHTML = '';
+  document.getElementById('s2-status').innerHTML = '';
+  showErr('s2', '');
+
+  const sortLabel = { relevance: 'relevant', recent: 'recent', cited: 'most cited' }[newSort] || 'relevant';
+  document.getElementById('s2-papers').innerHTML = `<div style="padding:40px 0;text-align:center;width:100%;grid-column:1/-1;"><div class="spinner"></div><div class="loader-text">Fetching ${newDepth} ${sortLabel} papers…</div></div>`;
+  document.getElementById('s2-next').disabled = true;
+
+  try {
+    const result = await callFetch(newQuery, S.citationStyle, newDepth, newSort);
+    S.papers = result.sources || [];
+    S.clusters = []; 
+    S.breakdown = result.breakdown || null;
+    S.selected = new Set(S.papers.map((_, i) => i));
+    document.getElementById('s2-papers').innerHTML = '';
+    renderPapers(result);
+  } catch(e) {
+    document.getElementById('s2-papers').innerHTML = '';
+    showErr('s2', e.message);
+  }
+}
+
 // ── RENDER STAGE 2 ─────────────────────────────────────────
 function renderPapers(result) {
   const grid = document.getElementById('s2-papers');
   grid.innerHTML = '';
-  document.getElementById('s2-status').innerHTML = `Found ${S.papers.length} peer-reviewed sources (${result.elapsed_seconds}s)`;
+  
+  const n = S.papers.length;
+  document.getElementById('s2-status').innerHTML = n > 0 
+      ? `● ${n} papers fetched · ${result.elapsed_seconds}s · detected as <strong>${result.input_type}</strong>`
+      : '<span style="color:var(--error)">⚠ No papers returned — check your query or try a different topic</span>';
+
+  // Seed paper banner
+  const existingBanner = document.getElementById('s2-seed-banner');
+  if (existingBanner) existingBanner.remove();
+  if (result.input_type === 'paper' && S.papers.length > 0) {
+    const seedTitle = result.query;
+    const banner = document.createElement('div');
+    banner.id = 's2-seed-banner';
+    banner.className = 'info-callout';
+    banner.style.borderLeftColor = 'var(--accent)';
+    banner.style.marginBottom = '20px';
+    banner.innerHTML = `<strong>🔗 Seeded from:</strong> ${seedTitle} — showing references and related works.`;
+    grid.before(banner);
+  }
+
+  const countBadge = document.getElementById('s2-paper-count');
+  if (countBadge) countBadge.textContent = `${n} paper${n !== 1 ? 's' : ''}`;
 
   S.papers.forEach((p, i) => {
     const card = document.createElement('div');
     card.className = 'paper-card selected';
+    card.dataset.idx = i;
     
-    const srcLabel = p.source ? p.source.toUpperCase() : 'UNKNOWN';
+    const srcLabel = p.source === 'arxiv' ? 'arXiv' : p.source === 'openalex' ? 'OpenAlex' : p.source === 'crossref' ? 'Crossref' : p.source === 'ddg' ? 'Web' : 'Unknown';
     const oaBadge = p.is_open_access ? `<span class="tag open">Open Access</span>` : '';
     const citBadge = p.citations ? `<span class="tag cit">↗ ${p.citations.toLocaleString()} citations</span>` : '';
 
@@ -643,27 +787,33 @@ function renderPapers(result) {
       <div class="p-src">${srcLabel}</div>
       <div class="p-title">${p.title}</div>
       <div class="p-meta">
-        <span class="tag">${p.authors || 'Unknown Authors'}</span>
+        <span class="tag">${p.authors || ''}</span>
         ${p.year ? `<span class="tag">${p.year}</span>` : ''}
         ${citBadge}
         ${oaBadge}
       </div>
     `;
-    card.addEventListener('click', () => {
-      if (S.selected.has(i)) { S.selected.delete(i); card.classList.remove('selected'); }
-      else { S.selected.add(i); card.classList.add('selected'); }
-      document.getElementById('s2-hint').textContent = `${S.selected.size} selected`;
-      document.getElementById('s2-next').disabled = S.selected.size === 0;
-    });
+    card.addEventListener('click', () => togglePaper(card, i));
     grid.appendChild(card);
   });
-  document.getElementById('s2-hint').textContent = `${S.selected.size} selected`;
+  updatePaperHint();
+}
+
+function togglePaper(card, i) {
+  if (S.selected.has(i)) { S.selected.delete(i); card.classList.remove('selected'); }
+  else { S.selected.add(i); card.classList.add('selected'); }
+  updatePaperHint();
+}
+function updatePaperHint() {
+  const n = S.selected.size;
+  document.getElementById('s2-hint').textContent = `${n} paper${n !== 1 ? 's' : ''} selected`;
+  document.getElementById('s2-next').disabled = n === 0;
 }
 
 // ── RENDER STAGE 3 ─────────────────────────────────────────
 async function goStage3() {
   unlock(3); jumpTo(3); 
-  setLoader('s3', true, "Analyzing semantic relationships..."); 
+  setLoader('s3', true, "Extracting themes..."); 
   document.getElementById('s3-results').style.display = 'none';
   showErr('s3', '');
 
@@ -696,7 +846,7 @@ function renderClusters() {
     card.className = 'cluster-card';
 
     const paperTags = (c.paper_indices || []).map(idx => {
-      const p = S.papers[idx - 1]; // assuming 1-based indexing from backend
+      const p = S.papers[idx - 1]; // backend 1-based indexing
       if (!p) return '';
       const label = p.authors ? p.authors.split(',')[0] + (p.year ? `, ${p.year}` : '') : p.title.slice(0, 30);
       return `<span class="c-tag">${label}</span>`;
@@ -755,7 +905,6 @@ async function goStage4() {
     document.getElementById('s4-citations').textContent = S.citationList;
     
     document.getElementById('s4-results').style.display = 'block';
-    document.getElementById('export-bar').classList.add('show');
   } catch(e) {
     showErr('s4', e.message);
   } finally {
@@ -769,14 +918,28 @@ function switchTab(name) {
 }
 
 function exportDraft(fmt) {
+  // Triggers native browser Print -> PDF (using the @media print CSS)
+  if (fmt === 'pdf') {
+    window.print();
+    return;
+  }
+
   const text = `LITERATURE REVIEW — ${S.query}\nGenerated ${new Date().toLocaleDateString()}\n\n${S.narrative}\n\n---\n\nREFERENCES\n\n${S.citationList}`;
+  
   if (fmt === 'copy') {
     navigator.clipboard.writeText(text).then(() => {
-      const btn = event.target; const orig = btn.textContent;
-      btn.textContent = '✓ Copied'; setTimeout(() => btn.textContent = orig, 1500);
+      const btns = document.querySelectorAll('.exp-btn');
+      btns.forEach(btn => {
+        if(btn.textContent.includes('Copy')) {
+          const orig = btn.innerHTML;
+          btn.innerHTML = '✓ Copied';
+          setTimeout(() => btn.innerHTML = orig, 1500);
+        }
+      });
     });
     return;
   }
+  
   const ext = fmt === 'md' ? '.md' : '.txt';
   const mime = fmt === 'md' ? 'text/markdown' : 'text/plain';
   const name = 'litreview_' + S.query.replace(/\s+/g,'_').toLowerCase().slice(0,40) + ext;
@@ -785,7 +948,21 @@ function exportDraft(fmt) {
   a.download = name; a.click();
 }
 
-function startOver() { location.reload(); }
+function startOver() {
+  S.query = ''; S.papers = []; S.selected = new Set();
+  S.clusters = []; S.narrative = ''; S.citationList = '';
+  S.unlocked = [1]; S.current = 1; S.maxResults = 14;
+  S.sortBy = 'relevance'; S.inputMode = 'topic';
+  S.seedPaper = null; S.breakdown = null;
+  document.getElementById('s1-input').value = '';
+  document.getElementById('s1-paper-input').value = '';
+  setInputMode('topic');
+  document.getElementById('s1-depth-slider').value = 14;
+  updateDepth(14);
+  document.getElementById('export-bar').classList.remove('show');
+  document.getElementById('s2-search-again-panel').style.display = 'none';
+  jumpTo(1);
+}
 </script>
 </body>
 </html>
