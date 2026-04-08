@@ -72,12 +72,20 @@ h1 em { font-style: italic; color: var(--accent); }
 .hdr { margin-bottom: 56px; }
 .hdr-badge {
   display: inline-flex; align-items: center; gap: 8px;
-  font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
-  color: var(--accent); background: var(--accent-light);
-  padding: 6px 12px; border-radius: 100px; margin-bottom: 24px;
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-muted); border: 1px solid var(--border);
+  padding: 4px 12px; border-radius: 4px; margin-bottom: 24px;
 }
-.hdr-badge span { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.hdr-badge span { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); }
+
+/* ── TOPIC DISPLAY ── */
+.active-topic-bar {
+  display: none; align-items: center; gap: 12px; margin-bottom: 32px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.active-topic-bar.show { display: flex; animation: slideUp 0.4s ease; }
+.topic-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-light); }
+.topic-value { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 600; color: var(--text-main); font-style: italic; }
 
 /* ── MODERN STEPPER (RAIL) ── */
 .stepper {
@@ -200,6 +208,8 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
 
 .p-src { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-light); margin-bottom: 8px; padding-right: 30px; }
 .p-title { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 600; color: var(--text-main); line-height: 1.4; margin-bottom: 12px; }
+.p-link { position: absolute; top: 18px; right: 52px; color: var(--text-light); transition: var(--transition); display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-subtle); border: 1px solid var(--border); }
+.p-link:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-light); }
 .p-meta { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.8rem; color: var(--text-muted); }
 .tag { background: var(--bg-inset); padding: 4px 8px; border-radius: 4px; font-weight: 500; }
 .tag.open { background: #dcfce7; color: #166534; }
@@ -313,9 +323,14 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); box-sha
 <div class="wrap">
 
   <div class="hdr">
-    <div class="hdr-badge"><span></span>lit·draft · AI Research Agent</div>
-    <h1>Literature reviews,<br/><em>done properly.</em></h1>
-    <p class="subtitle">Enter a research topic or paste a paper title. The agent fetches real peer-reviewed papers, synthesizes them by theme, and drafts a comprehensive review.</p>
+    <div class="hdr-badge"><span></span>LITDRAFT / ACADEMIC SYNTHESIS</div>
+    <h1>Research at the speed<br/><em>of thought.</em></h1>
+    <p class="subtitle">Elevate your literature review from a list of sources to a structured narrative. Powered by real-time academic databases and state-of-the-art synthesis.</p>
+  </div>
+
+  <div class="active-topic-bar" id="active-topic-bar">
+    <span class="topic-label">Current Project</span>
+    <span class="topic-value" id="active-topic-value"></span>
   </div>
 
   <div class="stepper">
@@ -639,7 +654,15 @@ async function runFetch() {
     S.papers = result.sources || []; 
     S.clusters = result.clusters || []; 
     S.breakdown = result.breakdown || null;
-    S.selected = new Set(S.papers.map((_, i) => i));
+    
+    // Update active topic display
+    document.getElementById('active-topic-value').textContent = S.query;
+    document.getElementById('active-topic-bar').classList.add('show');
+    
+    // Pre-select only the top matches (Suggestion 2)
+    const targetCount = Math.min(S.papers.length, S.maxResults);
+    S.selected = new Set(S.papers.slice(0, targetCount).map((_, i) => i));
+
     unlock(2); jumpTo(2); renderPapers(result);
   } catch(e) {
     showErr('s1', e.message);
@@ -670,7 +693,10 @@ async function runFetchFromPaper() {
     S.papers = result.sources || [];
     S.clusters = [];
     S.breakdown = result.breakdown || null;
-    S.selected = new Set(S.papers.map((_, i) => i));
+    
+    // Pre-select only the top matches
+    const targetCount = Math.min(S.papers.length, S.maxResults);
+    S.selected = new Set(S.papers.slice(0, targetCount).map((_, i) => i));
 
     unlock(2); jumpTo(2); renderPapers(result);
   } catch(e) {
@@ -738,7 +764,11 @@ async function reSearch() {
     S.papers = result.sources || [];
     S.clusters = []; 
     S.breakdown = result.breakdown || null;
-    S.selected = new Set(S.papers.map((_, i) => i));
+    
+    // Pre-select only the top matches
+    const targetCount = Math.min(S.papers.length, S.maxResults);
+    S.selected = new Set(S.papers.slice(0, targetCount).map((_, i) => i));
+
     document.getElementById('s2-papers').innerHTML = '';
     renderPapers(result);
   } catch(e) {
@@ -775,19 +805,25 @@ function renderPapers(result) {
   if (countBadge) countBadge.textContent = `${n} paper${n !== 1 ? 's' : ''}`;
 
   S.papers.forEach((p, i) => {
+    const isSelected = S.selected.has(i);
     const card = document.createElement('div');
-    card.className = 'paper-card selected';
+    card.className = 'paper-card' + (isSelected ? ' selected' : '');
     card.dataset.idx = i;
     
     const srcLabel = p.source === 'arxiv' ? 'arXiv' : p.source === 'openalex' ? 'OpenAlex' : p.source === 'crossref' ? 'Crossref' : p.source === 'ddg' ? 'Web' : 'Unknown';
     const oaBadge = p.is_open_access ? `<span class="tag open">Open Access</span>` : '';
     const citBadge = p.citations ? `<span class="tag cit">↗ ${p.citations.toLocaleString()} citations</span>` : '';
+    const topBadge = i < S.maxResults ? `<span class="tag" style="background:var(--accent-light);color:var(--accent-hover);border:1px solid var(--accent)">Top Match</span>` : '';
 
     card.innerHTML = `
       <div class="card-checkbox"></div>
+      <a href="${p.url}" target="_blank" class="p-link" onclick="event.stopPropagation()" title="View Paper">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+      </a>
       <div class="p-src">${srcLabel}</div>
       <div class="p-title">${p.title}</div>
       <div class="p-meta">
+        ${topBadge}
         <span class="tag">${p.authors || ''}</span>
         ${p.year ? `<span class="tag">${p.year}</span>` : ''}
         ${citBadge}
@@ -976,10 +1012,10 @@ function startOver() {
   document.getElementById('s1-depth-slider').value = 14;
   updateDepth(14);
   document.getElementById('export-bar').classList.remove('show');
+  document.getElementById('active-topic-bar').classList.remove('show');
   document.getElementById('s2-search-again-panel').style.display = 'none';
   jumpTo(1);
 }
 </script>
 </body>
 </html>
-```
