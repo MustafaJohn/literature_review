@@ -44,14 +44,16 @@ def research_agent(state: LitReviewState) -> LitReviewState:
     query       = state["query"]
     input_type  = state.get("input_type") or _detect_input_type(query)
     max_results = state.get("max_results") or DEFAULT_MAX_RESULTS
+    # Fetch a few extra papers to allow for user curation (select top X from Y)
+    fetch_limit = max_results + 6
     sort_by     = state.get("sort_by") or "relevance"
 
     logger.info(
-        "[researcher] Query: %s | Detected type: %s | Max results: %d | Sort: %s",
-        query, input_type, max_results, sort_by,
+        "[researcher] Query: %s | Detected type: %s | Max results: %d (fetch limit: %d) | Sort: %s",
+        query, input_type, max_results, fetch_limit, sort_by,
     )
 
-    result     = fetch_papers(query, input_type=input_type, max_results=max_results, sort_by=sort_by, generate_breakdown=True)
+    result     = fetch_papers(query, input_type=input_type, max_results=fetch_limit, sort_by=sort_by, generate_breakdown=True)
     all_papers = result["papers"]
 
     valid_docs = [p for p in all_papers if _is_valid(p)]
