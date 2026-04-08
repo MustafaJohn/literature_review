@@ -195,7 +195,7 @@ async def run_fetch_from_paper(req: PaperFetchRequest):
         result = await asyncio.to_thread(
             fetch_from_paper, 
             req.url_or_doi, 
-            max_results=req.max_results, 
+            max_results=req.max_results + 6, 
             use_decomposition=True, 
             generate_breakdown=True
         )
